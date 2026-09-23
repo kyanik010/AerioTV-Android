@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -30,6 +32,7 @@ class AudioSourceManager @javax.inject.Inject constructor(
     private val prefs = context.getSharedPreferences("audio_source", Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var player: ExoPlayer? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val _channels = MutableStateFlow<List<AudioM3uChannel>>(emptyList())
     val channels: StateFlow<List<AudioM3uChannel>> = _channels.asStateFlow()
     private val _selected = MutableStateFlow<AudioM3uChannel?>(null)
@@ -114,7 +117,7 @@ class AudioSourceManager @javax.inject.Inject constructor(
     /** Align the audio-only player to the current video playhead. */
     fun syncToVideo(videoPositionMs: Long) {
         val target = (videoPositionMs - _syncMs.value).coerceAtLeast(0L)
-        player?.seekTo(target)
+        mainHandler.post { player?.seekTo(target) }
     }
 
     fun seekRelative(deltaMs: Long) {
