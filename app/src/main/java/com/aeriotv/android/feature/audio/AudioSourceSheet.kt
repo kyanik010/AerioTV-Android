@@ -15,7 +15,11 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 @Composable
-fun AudioSourceSheet(manager: AudioSourceManager, onDismiss: () -> Unit) {
+fun AudioSourceSheet(
+    manager: AudioSourceManager,
+    onDismiss: () -> Unit,
+    videoPositionProvider: () -> Long = { 0L },
+) {
     val channels by manager.channels.collectAsState()
     val selected by manager.selected.collectAsState()
     val savedUrl by manager.url.collectAsState()
@@ -38,36 +42,63 @@ fun AudioSourceSheet(manager: AudioSourceManager, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Filled.MusicNote, null)
-            Text("Audio")
+            Text("Audio Source")
         }},
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(url, { url = it }, label = { Text("M3U URL") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("M3U URL") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(enabled = !loading, onClick = {
+                    Button(enabled = !loading && url.isNotBlank(), onClick = {
                         loading = true; error = null
                         scope.launch { error = manager.loadPlaylist(url).exceptionOrNull()?.message; loading = false }
                     }) { Text(if (loading) "Loading…" else "Load Audio") }
-                    IconButton(onClick = {
-                        loading = true
-                        error = null
-                        scope.launch { error = manager.loadPlaylist(url).exceptionOrNull()?.message; loading = false }
-                    }) { Icon(Icons.Filled.Refresh, "Refresh") }
-                    if (selected != null) IconButton(onClick = manager::stop) { Icon(Icons.Filled.Stop, "Remove Audio") }
+                    IconButton(
+                        enabled = !loading && url.isNotBlank(),
+                        onClick = {
+                            loading = true
+                            error = null
+                            scope.launch { error = manager.loadPlaylist(url).exceptionOrNull()?.message; loading = false }
+                        },
+                    ) { Icon(Icons.Filled.Refresh, "Refresh") }
+                    if (selected != null) {
+                        IconButton(onClick = manager::stop) { Icon(Icons.Filled.Stop, "Remove Audio") }
+                    }
                 }
                 if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                error?.let { Text(it) }
-                Text("Audio Sync: \${syncMs} ms")
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+                Text("Audio Sync: ${syncMs} ms", style = MaterialTheme.typography.titleSmall)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(onClick = { manager.setSyncMs(syncMs - 100) }) { Text("−100 ms") }
+                    Button(onClick = { manager.syncToVideo(videoPositionProvider()) }) {
+                        Text("Sync Now")
+                    }
+                    OutlinedButton(onClick = { manager.setSyncMs(syncMs + 100) }) { Text("+100 ms") }
+                }
                 Slider(
                     value = syncMs.toFloat(),
                     onValueChange = { manager.setSyncMs((it / 100f).toInt() * 100) },
                     valueRange = -5000f..5000f,
                     steps = 99,
                 )
+                Text(
+                    "Select an audio channel. Video remains the current Live TV channel.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 LazyColumn(Modifier.heightIn(max = 360.dp)) {
-                    items(channels) { channel ->
+                    items(channels, key = { it.url }) { channel ->
                         OutlinedButton({ manager.play(channel) }, Modifier.fillMaxWidth()) {
-                            Text(if (channel == selected) "▶ \${channel.name}" else channel.name)
+                            Text(if (channel == selected) "▶ ${channel.name}" else channel.name)
                         }
                     }
                 }
