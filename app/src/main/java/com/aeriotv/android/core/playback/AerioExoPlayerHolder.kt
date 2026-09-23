@@ -1731,25 +1731,27 @@ class AerioExoPlayerHolder @Inject constructor(
         // to stay above it: a bufferForPlaybackMs at or past minBufferMs leaves
         // the load control nothing to work with. min = gate + 4s keeps the same
         // 4 s of real cushion the tuning above describes.
-        val minBufferMs = maxOf(6_000, bufferFloorMs, startGateMs + 4_000)
-        // The post-stall resume gate can only hold for what the LoadControl will
-        // actually keep buffered ahead (target is clamped to maxBufferMs - 1 s),
-        // and minBufferMs * 2 is only ~10.4 s at the base start gate. A live
-        // player therefore gets at least 14 s of max buffer so a 12 s gate is
-        // reachable; the MIN bound is untouched, so steady-state behaviour and
-        // the Buffer Size ladder are unchanged.
-        val liveMaxBufferMs = maxOf(minBufferMs * 2, LIVE_MAX_BUFFER_FLOOR_MS)
+        val minBufferMs = maxOf(8_000, bufferFloorMs, startGateMs + 5_000)
+        // Deep live cushion: keep substantially more media than the old 24 s
+        // ceiling. This is intentionally paired with a larger post-rebuffer
+        // gate and a retained back-buffer, so a short upstream starvation does
+        // not immediately turn into an empty-buffer stall.
+        val liveMaxBufferMs = maxOf(minBufferMs * 4, 45_000, LIVE_MAX_BUFFER_FLOOR_MS)
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ minBufferMs,
-                // Real headroom between the bounds at EVERY rung. The old
-                // maxOf(8_000, minBufferMs) degenerated to min == max once the
-                // floor reached 8s, leaving the load control nothing to work
-                // with on precisely the setting chosen for poor networks.
                 /* maxBufferMs = */ liveMaxBufferMs,
                 /* bufferForPlaybackMs = */ startGateMs,
-                /* bufferForPlaybackAfterRebufferMs = */ 2_000,
+                // After an actual underrun, do not resume on a paper-thin
+                // 2-second cushion. The player must rebuild enough runway to
+                // survive another short burst gap.
+                /* bufferForPlaybackAfterRebufferMs = */ 5_000,
             )
+            // Retain 30 s behind the live playhead. This is not the same as
+            // forward buffering: it gives the recovery logic room to move back
+            // inside already-downloaded media instead of reopening the network
+            // for every transient underrun.
+            .setBackBuffer(30_000, true)
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
@@ -3889,16 +3891,16 @@ class AerioExoPlayerHolder @Inject constructor(
         private const val REJOIN_COOLDOWN_MS = 180_000L
         /** Floor on the rejoin seek-back: less than this lands back inside the
          *  same delivery gap. */
-        private const val REJOIN_MIN_BACK_MS = 8_000L
+        private const val REJOIN_MIN_BACK_MS = 12_000L
         /** Ceiling on the rejoin seek-back: past this the user is watching
          *  meaningfully old live. */
-        private const val REJOIN_MAX_BACK_MS = 18_000L
+        private const val REJOIN_MAX_BACK_MS = 30_000L
         /** Safety margin kept off the tail of the local window so a rejoin never
          *  seeks to or past the oldest byte retained. */
         private const val REJOIN_WINDOW_MARGIN_MS = 1_000L
         /** Hard timeout: a feed that cannot rebuild the cushion in 25 s is not
          *  going to, so resume with whatever is buffered and log why. */
-        private const val RESUME_GATE_TIMEOUT_MS = 25_000L
+        private const val RESUME_GATE_TIMEOUT_MS = 35_000L
         private const val TAG_DIAG = "AerioPlayerDiag"
 
         /** How long after a tune a decoder failure still counts as the codec
