@@ -1800,7 +1800,7 @@ fun PlayerScreen(
     // panel up until it is dismissed.
     val interactionLocked = chromeMenuOpen || recordTarget != null || streamInfo != null ||
         subtitles != null || audioTracks != null || playbackSpeedSheet != null ||
-        switchStream != null || multiviewPickerOpen || castChooserOpen
+        switchStream != null || multiviewPickerOpen || castChooserOpen || showAudioSourceDialog
     // Publish whether the surf keys should stay at the activity layer (see
     // ExoWindowState.dpadVerticalCaptured). Chrome, scrub HUD, menus/sheets
     // and the Recently Watched overlay all release UP/DOWN to Compose focus.
@@ -2054,6 +2054,8 @@ fun PlayerScreen(
         streamInfoState = streamInfoState,
         subtitlesState = subtitlesState,
         audioTracksState = audioTracksState,
+        audioSourceManager = audioSourceManager,
+        audioSourceDialogOpenState = audioSourceDialogOpenState,
         switchStreamState = switchStreamState,
         switchedStreamIdState = switchedStreamIdState,
         playbackSpeedSheetState = playbackSpeedSheetState,
@@ -2380,6 +2382,8 @@ private fun LiveRewindChromeSection(
     exoHolder: com.aeriotv.android.core.playback.AerioExoPlayerHolder,
     timeshiftController: com.aeriotv.android.core.timeshift.TimeshiftController,
     settingsVm: SettingsViewModel,
+    audioSourceManager: AudioSourceManager,
+    audioSourceDialogOpenState: MutableState<Boolean>,
     miniPlayerVm: MiniPlayerViewModel,
     exoWindowState: ExoWindowState,
     castSender: com.aeriotv.android.core.cast.AerioCastSender,
@@ -2458,6 +2462,7 @@ private fun LiveRewindChromeSection(
     var multiviewPickerOpen by multiviewPickerOpenState
     var chromeMenuOpen by chromeMenuOpenState
     var castChooserOpen by castChooserOpenState
+    var showAudioSourceDialog by audioSourceDialogOpenState
     var audioOnly by audioOnlyState
     var sleepEndsAt by sleepEndsAtState
     var sleepRemainingMillis by sleepRemainingMillisState
