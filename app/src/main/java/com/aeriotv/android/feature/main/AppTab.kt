@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.filled.OndemandVideo
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.outlined.Favorite
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.outlined.LiveTv
 import androidx.compose.material.icons.outlined.OndemandVideo
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.ui.graphics.vector.ImageVector
