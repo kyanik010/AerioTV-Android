@@ -22,6 +22,7 @@ fun AudioSourceSheet(manager: AudioSourceManager, onDismiss: () -> Unit) {
     var url by remember(savedUrl) { mutableStateOf(savedUrl) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         manager.restoreSelected()
@@ -44,11 +45,12 @@ fun AudioSourceSheet(manager: AudioSourceManager, onDismiss: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(enabled = !loading, onClick = {
                         loading = true; error = null
-                        LaunchedEffect(Unit) {}
+                        scope.launch { error = manager.loadPlaylist(url).exceptionOrNull()?.message; loading = false }
                     }) { Text(if (loading) "Loading…" else "Load Audio") }
                     IconButton(onClick = {
                         loading = true
                         error = null
+                        scope.launch { error = manager.loadPlaylist(url).exceptionOrNull()?.message; loading = false }
                     }) { Icon(Icons.Filled.Refresh, "Refresh") }
                     if (selected != null) IconButton(onClick = manager::stop) { Icon(Icons.Filled.Stop, "Remove Audio") }
                 }
