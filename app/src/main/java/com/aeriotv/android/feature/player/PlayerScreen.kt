@@ -2533,6 +2533,9 @@ private fun LiveRewindChromeSection(
         AudioSourceSheet(
             manager = audioSourceManager,
             onDismiss = { showAudioSourceDialog = false },
+            videoPositionProvider = {
+                exoHolder.player?.currentPosition ?: 0L
+            },
         )
     }
 
