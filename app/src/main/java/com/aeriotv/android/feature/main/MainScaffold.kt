@@ -99,6 +99,7 @@ import com.aeriotv.android.core.data.M3UChannel
 import com.aeriotv.android.core.data.guideMatchKey
 import com.aeriotv.android.core.playback.AerioExoPlayerHolder
 import com.aeriotv.android.feature.dvr.DvrTabContent
+import com.aeriotv.android.feature.audio.AudioSourceTabContent
 import com.aeriotv.android.feature.dvr.DvrViewModel
 import com.aeriotv.android.feature.favorites.FavoritesTabContent
 import com.aeriotv.android.feature.favorites.FavoritesViewModel
