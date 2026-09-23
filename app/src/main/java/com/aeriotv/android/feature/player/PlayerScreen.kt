@@ -69,6 +69,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import com.aeriotv.android.core.ui.SkipIntervals
+import com.aeriotv.android.feature.audio.AudioSourceManager
+import com.aeriotv.android.feature.audio.AudioSourceSheet
 
 private const val TAG = "PlayerScreen"
 /**
@@ -171,6 +173,7 @@ fun PlayerScreen(
         initialValue = com.aeriotv.android.core.preferences.PLAYER_EDGE_LEFT,
     )
     // Remote Control initiative: live button map (player context slots).
+    var audioSourceSheetOpen by remember { mutableStateOf(false) }
     val remoteMap by settingsVm.remoteControlMap.collectAsStateWithLifecycle(
         initialValue = com.aeriotv.android.core.remote.RemoteControlMap.DEFAULT,
     )
@@ -187,6 +190,7 @@ fun PlayerScreen(
         )
     }
     val exoHolder = remember { playerEntry.exoPlayerHolder() }
+    val audioSourceManager = remember { playerEntry.audioSourceManager() }
     val exoWindowState = remember { playerEntry.exoWindowState() }
     val timeshiftController = remember { playerEntry.timeshiftController() }
     // Cast Connect (GH #33) sender. isCasting drives the local-vs-remote swap:
@@ -2518,6 +2522,13 @@ private fun LiveRewindChromeSection(
         showProgramSubtitle = cardShowProgramSubtitle,
         showProgramDescription = cardShowProgramDescription,
     )
+    if (audioSourceSheetOpen) {
+        AudioSourceSheet(
+            manager = audioSourceManager,
+            onDismiss = { audioSourceSheetOpen = false },
+        )
+    }
+
     PlayerChromeOverlay(
         channel = currentChannel,
         nowProgramme = nowProgramme,
@@ -2690,6 +2701,7 @@ private fun LiveRewindChromeSection(
                 currentSid = player.readCurrentSid(),
             )
         },
+        onAudioSource = { audioSourceSheetOpen = true },
         onShowAudioTracks = {
             val player = exoHolder.player ?: return@PlayerChromeOverlay
             audioTracks = AudioTracksState(
@@ -2987,5 +2999,6 @@ interface PlayerScreenEntryPoint {
     fun castReceiver(): com.aeriotv.android.core.cast.AerioCastReceiverController
     fun companionRemote(): com.aeriotv.android.core.cast.companion.CompanionRemoteController
     fun companionDiscovery(): com.aeriotv.android.core.cast.companion.CompanionDiscovery
+    fun audioSourceManager(): AudioSourceManager
     fun companionHost(): com.aeriotv.android.core.cast.companion.CompanionHostController
 }
