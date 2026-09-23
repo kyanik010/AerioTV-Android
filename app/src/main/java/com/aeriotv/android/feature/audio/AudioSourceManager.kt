@@ -4,16 +4,18 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -26,6 +28,7 @@ class AudioSourceManager @javax.inject.Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val prefs = context.getSharedPreferences("audio_source", Context.MODE_PRIVATE)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var player: ExoPlayer? = null
     private val _channels = MutableStateFlow<List<AudioM3uChannel>>(emptyList())
     val channels: StateFlow<List<AudioM3uChannel>> = _channels.asStateFlow()
@@ -35,6 +38,16 @@ class AudioSourceManager @javax.inject.Inject constructor(
     val url: StateFlow<String> = _url.asStateFlow()
     private val _syncMs = MutableStateFlow(prefs.getInt("sync_ms", 0))
     val syncMs: StateFlow<Int> = _syncMs.asStateFlow()
+
+    init {
+        // The audio library is restored at application startup, not only when
+        // the Audio screen is opened. This makes the saved M3U immediately
+        // available to the in-player "Audio Source" picker after relaunch.
+        val savedUrl = _url.value
+        if (savedUrl.isNotBlank()) {
+            scope.launch { loadPlaylist(savedUrl) }
+        }
+    }
 
     suspend fun loadPlaylist(rawUrl: String): Result<Int> = withContext(Dispatchers.IO) {
         runCatching {
@@ -51,6 +64,7 @@ class AudioSourceManager @javax.inject.Inject constructor(
             _url.value = normalized
             prefs.edit().putString("m3u_url", normalized).apply()
             _channels.value = parsed
+            restoreSelected()
             parsed.size
         }
     }
@@ -95,7 +109,16 @@ class AudioSourceManager @javax.inject.Inject constructor(
         val clamped = value.coerceIn(-5000, 5000)
         _syncMs.value = clamped
         prefs.edit().putInt("sync_ms", clamped).apply()
-        player?.let { p -> p.seekTo((p.currentPosition - clamped).coerceAtLeast(0L)) }
+    }
+
+    /** Align the audio-only player to the current video playhead. */
+    fun syncToVideo(videoPositionMs: Long) {
+        val target = (videoPositionMs - _syncMs.value).coerceAtLeast(0L)
+        player?.seekTo(target)
+    }
+
+    fun seekRelative(deltaMs: Long) {
+        player?.let { p -> p.seekTo((p.currentPosition + deltaMs).coerceAtLeast(0L)) }
     }
 
     private fun parseM3u(text: String): List<AudioM3uChannel> {
@@ -108,8 +131,8 @@ class AudioSourceManager @javax.inject.Inject constructor(
             when {
                 line.startsWith("#EXTINF", true) -> {
                     name = line.substringAfterLast(',').trim().ifBlank { "Audio" }
-                    logo = Regex("""tvg-logo=["']([^"']+)""", RegexOption.IGNORE_CASE).find(line)?.groupValues?.getOrNull(1)
-                    group = Regex("""group-title=["']([^"']+)""", RegexOption.IGNORE_CASE).find(line)?.groupValues?.getOrNull(1)
+                    logo = Regex("""tvg-logo=["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(line)?.groupValues?.getOrNull(1)
+                    group = Regex("""group-title=["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(line)?.groupValues?.getOrNull(1)
                 }
                 line.isNotEmpty() && !line.startsWith("#") -> {
                     name?.let { result += AudioM3uChannel(it, line, logo, group) }
