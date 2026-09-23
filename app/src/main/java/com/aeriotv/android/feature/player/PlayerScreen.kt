@@ -174,7 +174,7 @@ fun PlayerScreen(
         initialValue = com.aeriotv.android.core.preferences.PLAYER_EDGE_LEFT,
     )
     // Remote Control initiative: live button map (player context slots).
-    var audioSourceSheetOpen by remember { mutableStateOf(false) }
+    var showAudioSourceDialog by remember { mutableStateOf(false) }
     val remoteMap by settingsVm.remoteControlMap.collectAsStateWithLifecycle(
         initialValue = com.aeriotv.android.core.remote.RemoteControlMap.DEFAULT,
     )
@@ -2523,10 +2523,10 @@ private fun LiveRewindChromeSection(
         showProgramSubtitle = cardShowProgramSubtitle,
         showProgramDescription = cardShowProgramDescription,
     )
-    if (audioSourceSheetOpen) {
+    if (showAudioSourceDialog) {
         AudioSourceSheet(
             manager = audioSourceManager,
-            onDismiss = { audioSourceSheetOpen = false },
+            onDismiss = { showAudioSourceDialog = false },
         )
     }
 
@@ -2702,7 +2702,7 @@ private fun LiveRewindChromeSection(
                 currentSid = player.readCurrentSid(),
             )
         },
-        onAudioSource = { audioSourceSheetOpen = true },
+        onAudioSource = { showAudioSourceDialog = true },
         onShowAudioTracks = {
             val player = exoHolder.player ?: return@PlayerChromeOverlay
             audioTracks = AudioTracksState(
