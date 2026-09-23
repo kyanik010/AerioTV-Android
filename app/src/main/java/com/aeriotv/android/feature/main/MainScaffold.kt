@@ -1814,6 +1814,9 @@ private fun MainTabContent(
                     onOpenSearch = onOpenSearch,
                 )
             }
+            AppTab.Audio -> {
+                AudioSourceTabContent()
+            }
             AppTab.Settings -> {
     SettingsTabContent(playlistViewModel = viewModel)
                 // TV-only tab (Logan 2026-08-06): the same global Search screen the
