@@ -170,6 +170,7 @@ fun PlayerChromeOverlay(
     onShowSwitchStream: () -> Unit,
     onShowSubtitles: () -> Unit,
     onShowAudioTracks: () -> Unit,
+    onAudioSource: () -> Unit = {},
     onShowPlaybackSpeed: () -> Unit,
     videoScaleLabel: String,
     onCycleVideoScale: () -> Unit,
@@ -619,6 +620,12 @@ fun PlayerChromeOverlay(
                     }
                 }
                 Spacer(Modifier.weight(1f))
+                CircleIconButton(
+                    icon = Icons.Filled.MusicNote,
+                    contentDescription = "Audio Source",
+                    onClick = onAudioSource,
+                )
+                Spacer(Modifier.width(8.dp))
                 CircleIconButton(
                     icon = if (forcedLandscape) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
                     contentDescription = if (forcedLandscape) "Exit fullscreen" else "Fullscreen",
