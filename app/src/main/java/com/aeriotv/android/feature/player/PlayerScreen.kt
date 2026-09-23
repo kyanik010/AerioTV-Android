@@ -72,6 +72,12 @@ import com.aeriotv.android.core.ui.SkipIntervals
 import com.aeriotv.android.feature.audio.AudioSourceManager
 import com.aeriotv.android.feature.audio.AudioSourceSheet
 
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+private interface PlayerAudioSourceEntryPoint {
+    fun audioSourceManager(): AudioSourceManager
+}
+
 private const val TAG = "PlayerScreen"
 /**
  * The ONE chrome auto-hide countdown (Logan 2026-09-11: "exactly 3 seconds
@@ -174,6 +180,12 @@ fun PlayerScreen(
     )
     // Remote Control initiative: live button map (player context slots).
     var audioSourceSheetOpen by remember { mutableStateOf(false) }
+    val audioSourceManager = remember {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            PlayerAudioSourceEntryPoint::class.java,
+        ).audioSourceManager()
+    }
     val remoteMap by settingsVm.remoteControlMap.collectAsStateWithLifecycle(
         initialValue = com.aeriotv.android.core.remote.RemoteControlMap.DEFAULT,
     )
