@@ -3,6 +3,8 @@ name: Build APK
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -26,6 +28,12 @@ jobs:
 
       - name: Build debug APK
         run: ./gradlew :app:assembleGithubDebug --stacktrace --no-daemon
+
+      - name: Verify APK exists
+        run: |
+          set -e
+          find app/build/outputs/apk -type f -name '*.apk' -print
+          test -n "$(find app/build/outputs/apk -type f -name '*.apk' -print -quit)"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
