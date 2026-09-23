@@ -1731,7 +1731,7 @@ class AerioExoPlayerHolder @Inject constructor(
         // to stay above it: a bufferForPlaybackMs at or past minBufferMs leaves
         // the load control nothing to work with. min = gate + 4s keeps the same
         // 4 s of real cushion the tuning above describes.
-        val minBufferMs = maxOf(4_000, bufferFloorMs, startGateMs + 4_000)
+        val minBufferMs = maxOf(6_000, bufferFloorMs, startGateMs + 4_000)
         // The post-stall resume gate can only hold for what the LoadControl will
         // actually keep buffered ahead (target is clamped to maxBufferMs - 1 s),
         // and minBufferMs * 2 is only ~10.4 s at the base start gate. A live
@@ -3842,7 +3842,7 @@ class AerioExoPlayerHolder @Inject constructor(
         private const val SWITCH_WINDOW_MS = 30_000L
         /** Raw-TS live ingest silence required (with an empty buffer) before
          *  the watchdog reopens the same channel. */
-        private const val LIVE_INGEST_RELOAD_SILENCE_MS = 25_000L
+        private const val LIVE_INGEST_RELOAD_SILENCE_MS = 35_000L
         /** A 503 this soon after a same-channel reopen gets one quick retry. */
         private const val SAME_CHANNEL_REOPEN_WINDOW_MS = 3_000L
         private const val SAME_CHANNEL_QUICK_RETRY_MS = 1_000L
@@ -3875,12 +3875,12 @@ class AerioExoPlayerHolder @Inject constructor(
          *  2026-09-13: 7-8 s gaps, gate pinned at 8 s, 9 stalls in 90 s). 12 s
          *  clears a gap of that size with margin; past it the hold costs more
          *  than the stall it prevents, and the repeat-stall rejoin takes over. */
-        private const val RESUME_GATE_CAP_MS = 12_000L
+        private const val RESUME_GATE_CAP_MS = 18_000L
         /** The gate can only hold what the LoadControl will keep, so a live
          *  player is built with at least this much max buffer (the default
          *  minBufferMs * 2 tops out around 10.4 s at the base start gate, which
          *  would silently clamp a 12 s gate to 9.4 s). */
-        private const val LIVE_MAX_BUFFER_FLOOR_MS = 14_000
+        private const val LIVE_MAX_BUFFER_FLOOR_MS = 24_000
         /** Two underruns inside this window mean the gate is not winning on this
          *  feed, so the next recovery rejoins behind the live edge instead. */
         private const val REPEAT_STALL_WINDOW_MS = 60_000L
