@@ -193,6 +193,26 @@ fun PlayerScreen(
     }
     val exoHolder = remember { playerEntry.exoPlayerHolder() }
     val audioSourceManager = remember { playerEntry.audioSourceManager() }
+    val externalAudioSelected by audioSourceManager.selected.collectAsStateWithLifecycle()
+    val activeExoPlayer by exoHolder.playerInstance.collectAsStateWithLifecycle()
+    var mainVolumeBeforeExternalAudio by remember { mutableStateOf<Float?>(null) }
+
+    // When a separate Audio Source is selected, mute ONLY the original video
+    // player's audio track. The video keeps decoding and rendering normally.
+    // Preserve the exact pre-selection player volume so removing the external
+    // source restores the user's previous volume instead of forcing a value.
+    LaunchedEffect(externalAudioSelected?.url, activeExoPlayer) {
+        val player = activeExoPlayer ?: return@LaunchedEffect
+        if (externalAudioSelected != null) {
+            if (mainVolumeBeforeExternalAudio == null) {
+                mainVolumeBeforeExternalAudio = player.volume
+            }
+            player.volume = 0f
+        } else {
+            mainVolumeBeforeExternalAudio?.let { player.volume = it }
+            mainVolumeBeforeExternalAudio = null
+        }
+    }
     val exoWindowState = remember { playerEntry.exoWindowState() }
     val timeshiftController = remember { playerEntry.timeshiftController() }
     // Cast Connect (GH #33) sender. isCasting drives the local-vs-remote swap:

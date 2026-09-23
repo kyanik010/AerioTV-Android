@@ -1734,11 +1734,11 @@ class AerioExoPlayerHolder @Inject constructor(
         val minBufferMs = maxOf(4_000, bufferFloorMs, startGateMs + 4_000)
         // The post-stall resume gate can only hold for what the LoadControl will
         // actually keep buffered ahead (target is clamped to maxBufferMs - 1 s),
-        // and minBufferMs * 2 is only ~10.4 s at the base start gate. A live
-        // player therefore gets at least 14 s of max buffer so a 12 s gate is
-        // reachable; the MIN bound is untouched, so steady-state behaviour and
-        // the Buffer Size ladder are unchanged.
-        val liveMaxBufferMs = maxOf(minBufferMs * 2, LIVE_MAX_BUFFER_FLOOR_MS)
+        // and minBufferMs * 3 keeps substantially more forward cushion without changing
+        // the start gate or the selected buffer-floor ladder. The 20 s floor also
+        // gives the default live player enough retained media to absorb short
+        // delivery gaps before the existing underrun/recovery logic takes over.
+        val liveMaxBufferMs = maxOf(minBufferMs * 3, LIVE_MAX_BUFFER_FLOOR_MS)
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ minBufferMs,
