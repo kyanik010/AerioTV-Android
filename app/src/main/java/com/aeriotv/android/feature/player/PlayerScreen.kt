@@ -174,7 +174,8 @@ fun PlayerScreen(
         initialValue = com.aeriotv.android.core.preferences.PLAYER_EDGE_LEFT,
     )
     // Remote Control initiative: live button map (player context slots).
-    var showAudioSourceDialog by remember { mutableStateOf(false) }
+    val audioSourceDialogOpenState = remember { mutableStateOf(false) }
+    var showAudioSourceDialog by audioSourceDialogOpenState
     val remoteMap by settingsVm.remoteControlMap.collectAsStateWithLifecycle(
         initialValue = com.aeriotv.android.core.remote.RemoteControlMap.DEFAULT,
     )
