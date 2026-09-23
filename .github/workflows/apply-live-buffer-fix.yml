@@ -1,0 +1,51 @@
+name: Apply live buffering tuning
+
+on:
+  push:
+    branches: [fix/audio-mute-buffering]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor == 'kyanik010'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Apply buffering tuning
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/aeriotv/android/core/playback/AerioExoPlayerHolder.kt')
+          s = p.read_text()
+          replacements = {
+              'val minBufferMs = maxOf(4_000, bufferFloorMs, startGateMs + 4_000)':
+                  'val minBufferMs = maxOf(6_000, bufferFloorMs, startGateMs + 4_000)',
+              'private const val LIVE_INGEST_RELOAD_SILENCE_MS = 25_000L':
+                  'private const val LIVE_INGEST_RELOAD_SILENCE_MS = 35_000L',
+              'private const val RESUME_GATE_CAP_MS = 12_000L':
+                  'private const val RESUME_GATE_CAP_MS = 18_000L',
+              'private const val LIVE_MAX_BUFFER_FLOOR_MS = 14_000':
+                  'private const val LIVE_MAX_BUFFER_FLOOR_MS = 24_000',
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'missing expected source text: {old}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+      - name: Commit source changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/aeriotv/android/core/playback/AerioExoPlayerHolder.kt
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix(player): deepen live buffer and stall cushion'
+          git push origin HEAD:${{ github.ref_name }}
