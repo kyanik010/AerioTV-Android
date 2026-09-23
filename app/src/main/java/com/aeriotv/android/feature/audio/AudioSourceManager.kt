@@ -4,10 +4,13 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import com.aeriotv.android.core.playback.AerioExoPlayerHolder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,11 +31,13 @@ data class AudioM3uChannel(val name: String, val url: String, val logo: String? 
 @javax.inject.Singleton
 class AudioSourceManager @javax.inject.Inject constructor(
     @ApplicationContext private val context: Context,
+    private val videoPlayerHolder: AerioExoPlayerHolder,
 ) {
     private val prefs = context.getSharedPreferences("audio_source", Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var player: ExoPlayer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var originalVideoVolume: Float? = null
     private val _channels = MutableStateFlow<List<AudioM3uChannel>>(emptyList())
     val channels: StateFlow<List<AudioM3uChannel>> = _channels.asStateFlow()
     private val _selected = MutableStateFlow<AudioM3uChannel?>(null)
@@ -43,9 +48,6 @@ class AudioSourceManager @javax.inject.Inject constructor(
     val syncMs: StateFlow<Int> = _syncMs.asStateFlow()
 
     init {
-        // The audio library is restored at application startup, not only when
-        // the Audio screen is opened. This makes the saved M3U immediately
-        // available to the in-player "Audio Source" picker after relaunch.
         val savedUrl = _url.value
         if (savedUrl.isNotBlank()) {
             scope.launch { loadPlaylist(savedUrl) }
@@ -77,7 +79,28 @@ class AudioSourceManager @javax.inject.Inject constructor(
         _channels.value.firstOrNull { it.url == saved }?.let { _selected.value = it }
     }
 
+    /** Mute only the primary video player's audio while external Audio is active. */
+    private fun mutePrimaryVideoAudio() {
+        val video = videoPlayerHolder.player ?: return
+        if (originalVideoVolume == null) {
+            originalVideoVolume = video.volume
+        }
+        video.volume = 0f
+    }
+
+    /** Restore exactly the primary video volume that was active before external Audio. */
+    private fun restorePrimaryVideoAudio() {
+        val saved = originalVideoVolume ?: return
+        videoPlayerHolder.player?.volume = saved
+        originalVideoVolume = null
+    }
+
     fun play(channel: AudioM3uChannel) {
+        // Keep the primary video running but make its audio silent as soon as
+        // an external audio source is selected. This does not touch playback
+        // position, buffering, or the video decoder.
+        mutePrimaryVideoAudio()
+
         val selector = DefaultTrackSelector(context)
         selector.parameters = selector.buildUponParameters()
             .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true)
@@ -92,6 +115,13 @@ class AudioSourceManager @javax.inject.Inject constructor(
             .setTrackSelector(selector)
             .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(http))
             .build().also { p ->
+                p.addListener(object : Player.Listener {
+                    override fun onPlayerError(error: PlaybackException) {
+                        // Do not leave the primary video permanently muted when
+                        // the external source failed to start.
+                        mainHandler.post { restorePrimaryVideoAudio() }
+                    }
+                })
                 p.setMediaItem(MediaItem.fromUri(channel.url))
                 p.prepare()
                 p.playWhenReady = true
@@ -106,6 +136,7 @@ class AudioSourceManager @javax.inject.Inject constructor(
         player = null
         _selected.value = null
         prefs.edit().remove("selected_url").apply()
+        restorePrimaryVideoAudio()
     }
 
     fun setSyncMs(value: Int) {
