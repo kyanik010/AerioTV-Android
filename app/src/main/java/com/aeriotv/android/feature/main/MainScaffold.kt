@@ -2678,6 +2678,9 @@ internal fun visibleTabs(
         if (hasMovies) add(AppTab.Movies)
         if (hasSeries) add(AppTab.TVShows)
     } else if (hasVod) add(AppTab.OnDemand)
+    // Audio is a permanent main tab. It is independent of the IPTV account's
+    // VOD/recording capabilities and must never be hidden by content gates.
+    add(AppTab.Audio)
     add(AppTab.Settings)
     // AppTab.Search is deliberately NOT a pill: on TV it renders as the
     // floating circle LEFT of Live TV inside TvTopTabBar (Logan 2026-08-06:
