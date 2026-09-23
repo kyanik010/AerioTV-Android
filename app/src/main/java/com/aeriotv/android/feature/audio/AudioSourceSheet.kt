@@ -22,89 +22,128 @@ fun AudioSourceSheet(
 ) {
     val channels by manager.channels.collectAsState()
     val selected by manager.selected.collectAsState()
-    val savedUrl by manager.url.collectAsState()
     val syncMs by manager.syncMs.collectAsState()
-    var url by remember(savedUrl) { mutableStateOf(savedUrl) }
+    val savedUrl by manager.url.collectAsState()
+    val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        manager.restoreSelected()
-        if (savedUrl.isNotBlank() && channels.isEmpty()) {
+    LaunchedEffect(savedUrl, channels.isEmpty()) {
+        if (savedUrl.isNotBlank() && channels.isEmpty() && !loading) {
             loading = true
             error = manager.loadPlaylist(savedUrl).exceptionOrNull()?.message
             loading = false
         }
+        manager.restoreSelected()
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Filled.MusicNote, null)
-            Text("Audio Source")
-        }},
+        title = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Filled.MusicNote, null)
+                Text("مصدر الصوت")
+            }
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = { url = it },
-                    label = { Text("M3U URL") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(enabled = !loading && url.isNotBlank(), onClick = {
-                        loading = true; error = null
-                        scope.launch { error = manager.loadPlaylist(url).exceptionOrNull()?.message; loading = false }
-                    }) { Text(if (loading) "Loading…" else "Load Audio") }
-                    IconButton(
-                        enabled = !loading && url.isNotBlank(),
-                        onClick = {
-                            loading = true
-                            error = null
-                            scope.launch { error = manager.loadPlaylist(url).exceptionOrNull()?.message; loading = false }
-                        },
-                    ) { Icon(Icons.Filled.Refresh, "Refresh") }
-                    if (selected != null) {
-                        IconButton(onClick = manager::stop) { Icon(Icons.Filled.Stop, "Remove Audio") }
-                    }
-                }
                 if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
-                Text("Audio Sync: ${syncMs} ms", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    selected?.name ?: "لا يوجد مصدر صوت محدد",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        enabled = selected != null && !loading,
+                        onClick = {
+                            val current = selected ?: return@Button
+                            loading = true
+                            error = null
+                            scope.launch {
+                                manager.play(current)
+                                loading = false
+                            }
+                        },
+                    ) {
+                        Text("إعادة الاتصال")
+                    }
+                    if (selected != null) {
+                        IconButton(onClick = manager::stop) {
+                            Icon(Icons.Filled.Stop, contentDescription = "إزالة مصدر الصوت")
+                        }
+                    }
+                    IconButton(
+                        enabled = savedUrl.isNotBlank() && !loading,
+                        onClick = {
+                            loading = true
+                            error = null
+                            scope.launch {
+                                error = manager.loadPlaylist(savedUrl).exceptionOrNull()?.message
+                                loading = false
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "تحديث الصوتيات")
+                    }
+                }
+
+                Text("القنوات الصوتية", style = MaterialTheme.typography.titleSmall)
+                if (channels.isEmpty()) {
+                    Text(
+                        "لا توجد قنوات صوتية محملة. افتح تبويب Audio وحمّل رابط M3U أولًا.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                        items(channels, key = { it.url }) { channel ->
+                            OutlinedButton(
+                                onClick = { manager.play(channel) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(if (channel == selected) "▶ " + channel.name else channel.name)
+                            }
+                        }
+                    }
+                }
+
+                Text("مزامنة الصوت: " + syncMs + " ms", style = MaterialTheme.typography.titleSmall)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedButton(onClick = { manager.setSyncMs(syncMs - 100) }) { Text("−100 ms") }
+                    OutlinedButton(onClick = { manager.setSyncMs(syncMs - 100) }) {
+                        Text("−100 ms")
+                    }
                     Button(onClick = { manager.syncToVideo(videoPositionProvider()) }) {
                         Text("Sync Now")
                     }
-                    OutlinedButton(onClick = { manager.setSyncMs(syncMs + 100) }) { Text("+100 ms") }
+                    OutlinedButton(onClick = { manager.setSyncMs(syncMs + 100) }) {
+                        Text("+100 ms")
+                    }
                 }
                 Slider(
                     value = syncMs.toFloat(),
-                    onValueChange = { manager.setSyncMs((it / 100f).toInt() * 100) },
+                    onValueChange = {
+                        manager.setSyncMs((it / 100f).toInt() * 100)
+                    },
                     valueRange = -5000f..5000f,
                     steps = 99,
                 )
                 Text(
-                    "Select an audio channel. Video remains the current Live TV channel.",
+                    "المزامنة تُطبّق على موضع فيديو Live TV الحالي عند الضغط على Sync Now.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                LazyColumn(Modifier.heightIn(max = 360.dp)) {
-                    items(channels, key = { it.url }) { channel ->
-                        OutlinedButton({ manager.play(channel) }, Modifier.fillMaxWidth()) {
-                            Text(if (channel == selected) "▶ ${channel.name}" else channel.name)
-                        }
-                    }
-                }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
-        dismissButton = { IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, "Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("تم") } },
+        dismissButton = {
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Filled.Close, contentDescription = "إغلاق")
+            }
+        },
     )
 }
