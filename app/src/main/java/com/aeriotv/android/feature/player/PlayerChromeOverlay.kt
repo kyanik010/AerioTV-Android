@@ -480,6 +480,13 @@ fun PlayerChromeOverlay(
                 }
                 if (!catchupMode) {
                     PlayerControlCircle(
+                        icon = Icons.Filled.MusicNote,
+                        title = "Audio",
+                        contentDescription = "Audio Source",
+                        onClick = onAudioSource,
+                        onInteraction = onInteraction,
+                    )
+                    PlayerControlCircle(
                         icon = Icons.Outlined.GridView,
                         title = "Multiview",
                         contentDescription = "Add a multiview tile",
