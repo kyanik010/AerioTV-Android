@@ -481,8 +481,8 @@ fun PlayerChromeOverlay(
                 if (!catchupMode) {
                     PlayerControlCircle(
                         icon = Icons.Filled.MusicNote,
-                        title = "Audio",
-                        contentDescription = "Audio Source",
+                        title = "مصدر الصوت",
+                        contentDescription = "مصدر الصوت",
                         onClick = onAudioSource,
                         onInteraction = onInteraction,
                     )
@@ -629,7 +629,7 @@ fun PlayerChromeOverlay(
                 Spacer(Modifier.weight(1f))
                 CircleIconButton(
                     icon = Icons.Filled.MusicNote,
-                    contentDescription = "Audio Source",
+                    contentDescription = "مصدر الصوت",
                     onClick = onAudioSource,
                 )
                 Spacer(Modifier.width(8.dp))
