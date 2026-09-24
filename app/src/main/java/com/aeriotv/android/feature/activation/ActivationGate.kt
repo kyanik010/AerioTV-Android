@@ -7,12 +7,16 @@ import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -179,57 +186,192 @@ private fun ActivationScreen(
     onRetry: () -> Unit,
 ) {
     val context = LocalContext.current
+
+    // These assets live in the separate mmm123 repository so the production
+    // source tree stays clean. Coil loads them over HTTPS and falls back to the
+    // existing built-in Aerio logo if the branding repository is temporarily
+    // unavailable.
+    val logoUrl = "https://raw.githubusercontent.com/kyanik010/mmm123/main/%D9%A2%D9%A0%D9%A2%D9%A6%D9%A0%D9%A9%D9%A2%D9%A4_%D9%A2%D9%A2%D9%A5%D9%A0%D9%A0%D9%A3.jpg"
+    val qrUrl = "https://raw.githubusercontent.com/kyanik010/mmm123/main/chrome_qrcode_1790272750958.png"
+
+    val statusText = when (state) {
+        ActivationState.CHECKING -> "جاري التحقق من الجهاز"
+        ActivationState.ACTIVATING -> "جاري تجهيز الخدمة"
+        ActivationState.NOT_REGISTERED -> "هذا الجهاز غير مفعل"
+        ActivationState.SUSPENDED -> "هذا الجهاز موقوف"
+        ActivationState.EXPIRED -> "انتهى التفعيل"
+        ActivationState.ERROR -> errorText ?: "تعذر التحقق من الجهاز"
+        ActivationState.ACTIVE -> ""
+    }
+
     Box(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF071018),
+                        Color(0xFF0B151F),
+                        Color(0xFF05090D),
+                    ),
+                ),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier.widthIn(max = 520.dp).padding(32.dp),
+            modifier = Modifier
+                .widthIn(max = 560.dp)
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                text = "MAC Address",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = activationId,
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-            )
-
-            when (state) {
-                ActivationState.CHECKING, ActivationState.ACTIVATING -> CircularProgressIndicator()
-                ActivationState.NOT_REGISTERED -> {
-                    Text(
-                        text = "هذا الجهاز غير مفعل",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                    )
-                    OutlinedButton(onClick = onRetry) { Text("إعادة التحقق") }
-                }
-                ActivationState.SUSPENDED -> {
-                    Text("هذا الجهاز موقوف", textAlign = TextAlign.Center)
-                    OutlinedButton(onClick = onRetry) { Text("إعادة التحقق") }
-                }
-                ActivationState.EXPIRED -> {
-                    Text("انتهى التفعيل", textAlign = TextAlign.Center)
-                    OutlinedButton(onClick = onRetry) { Text("إعادة التحقق") }
-                }
-                ActivationState.ERROR -> {
-                    Text(errorText ?: "تعذر التحقق", textAlign = TextAlign.Center)
-                    OutlinedButton(onClick = onRetry) { Text("إعادة المحاولة") }
-                }
-                ActivationState.ACTIVE -> Unit
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .size(108.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.10f),
+                        shape = RoundedCornerShape(24.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                coil.compose.AsyncImage(
+                    model = logoUrl,
+                    contentDescription = "شعار التطبيق",
+                    placeholder = androidx.compose.ui.res.painterResource(com.aeriotv.android.R.drawable.aerio_logo),
+                    error = androidx.compose.ui.res.painterResource(com.aeriotv.android.R.drawable.aerio_logo),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp)
+                        .clip(RoundedCornerShape(18.dp)),
+                )
             }
 
-            Button(onClick = {
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("MAC Address", activationId))
-                Toast.makeText(context, "تم نسخ العنوان", Toast.LENGTH_SHORT).show()
-            }) {
-                Text("نسخ العنوان")
+            Text(
+                text = "AerioTV",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+            )
+
+            Text(
+                text = "تفعيل الجهاز",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFF63D8E8),
+            )
+
+            androidx.compose.material3.Card(
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = Color.White.copy(alpha = 0.055f),
+                ),
+                shape = RoundedCornerShape(22.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = "معرّف الجهاز",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.62f),
+                    )
+                    Text(
+                        text = activationId,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = Color.White,
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Device ID", activationId))
+                            Toast.makeText(context, "تم نسخ معرّف الجهاز", Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Text("نسخ المعرّف")
+                    }
+                }
+            }
+
+            androidx.compose.material3.Card(
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = when (state) {
+                        ActivationState.CHECKING, ActivationState.ACTIVATING ->
+                            Color(0xFF63D8E8).copy(alpha = 0.10f)
+                        ActivationState.ACTIVE -> Color(0xFF4CAF50).copy(alpha = 0.10f)
+                        else -> Color(0xFFFFB74D).copy(alpha = 0.10f)
+                    },
+                ),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (state == ActivationState.CHECKING || state == ActivationState.ACTIVATING) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                    }
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        color = Color.White,
+                    )
+                }
+            }
+
+            if (state != ActivationState.CHECKING && state != ActivationState.ACTIVATING) {
+                androidx.compose.material3.Card(
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.045f),
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = "للتفعيل أو التواصل",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White.copy(alpha = 0.70f),
+                        )
+                        coil.compose.AsyncImage(
+                            model = qrUrl,
+                            contentDescription = "باركود التواصل",
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                            modifier = Modifier
+                                .size(150.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White)
+                                .padding(8.dp),
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = onRetry,
+                    modifier = Modifier.widthIn(min = 220.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text(if (state == ActivationState.ERROR) "إعادة المحاولة" else "إعادة التحقق")
+                }
             }
         }
     }
