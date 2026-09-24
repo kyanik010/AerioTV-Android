@@ -32,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.aeriotv.android.BuildConfig
+import com.aeriotv.android.core.data.SourceType
+import com.aeriotv.android.core.data.repository.PlaylistRepository
+import com.aeriotv.android.feature.audio.AudioSourceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -43,11 +46,13 @@ import java.net.URL
 import java.util.Collections
 import java.util.Locale
 
-private enum class ActivationState { CHECKING, NOT_REGISTERED, ACTIVE, SUSPENDED, EXPIRED, ERROR }
+private enum class ActivationState { CHECKING, ACTIVATING, NOT_REGISTERED, ACTIVE, SUSPENDED, EXPIRED, ERROR }
 
 @Composable
 fun ActivationGate(
     configStore: ActivationConfigStore,
+    playlistRepository: PlaylistRepository,
+    audioSourceManager: AudioSourceManager,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -63,15 +68,58 @@ fun ActivationGate(
             runCatching { requestActivation(activationId) }
         }
         result.onSuccess { response ->
-            state = when {
-                response.activated -> {
-                    response.config?.let(configStore::set)
-                    ActivationState.ACTIVE
+            if (!response.activated) {
+                state = when (response.status) {
+                    "expired" -> ActivationState.EXPIRED
+                    "suspended" -> ActivationState.SUSPENDED
+                    else -> ActivationState.NOT_REGISTERED
                 }
-                response.status == "expired" -> ActivationState.EXPIRED
-                response.status == "suspended" -> ActivationState.SUSPENDED
-                else -> ActivationState.NOT_REGISTERED
+                return@onSuccess
             }
+
+            val config = response.config
+            if (config == null || config.video == null) {
+                state = ActivationState.ERROR
+                errorText = "بيانات التفعيل غير مكتملة"
+                return@onSuccess
+            }
+
+            configStore.set(config)
+            state = ActivationState.ACTIVATING
+
+            val video = config.video
+            val videoResult = withContext(Dispatchers.IO) {
+                playlistRepository.loadAndPersist(
+                    PlaylistRepository.SaveRequest(
+                        sourceType = SourceType.XtreamCodes,
+                        name = "Live TV",
+                        url = video.serverUrl,
+                        username = video.username,
+                        password = video.password,
+                        vodEnabled = true,
+                    ),
+                )
+            }
+
+            if (videoResult.isFailure) {
+                state = ActivationState.ERROR
+                errorText = "تعذر تحميل خدمة الفيديو"
+                return@onSuccess
+            }
+
+            val audioUrl = config.audio?.m3uUrl
+            if (!audioUrl.isNullOrBlank()) {
+                val audioResult = withContext(Dispatchers.IO) {
+                    audioSourceManager.loadPlaylist(audioUrl)
+                }
+                if (audioResult.isFailure) {
+                    state = ActivationState.ERROR
+                    errorText = "تعذر تحميل خدمة الصوت"
+                    return@onSuccess
+                }
+            }
+
+            state = ActivationState.ACTIVE
         }.onFailure {
             state = ActivationState.ERROR
             errorText = "تعذر الاتصال بخادم التفعيل"
@@ -128,7 +176,7 @@ private fun ActivationScreen(
             )
 
             when (state) {
-                ActivationState.CHECKING -> CircularProgressIndicator()
+                ActivationState.CHECKING, ActivationState.ACTIVATING -> CircularProgressIndicator()
                 ActivationState.NOT_REGISTERED -> {
                     Text(
                         text = "هذا الجهاز غير مفعل",
