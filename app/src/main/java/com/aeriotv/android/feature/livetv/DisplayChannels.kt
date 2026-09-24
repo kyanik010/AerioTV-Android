@@ -10,22 +10,13 @@ import com.aeriotv.android.feature.playlist.SortMode
  * the Guide grid and the channel List, extracted from their previously
  * duplicated `derivedStateOf` bodies so it can run OFF the main thread via
  * `produceState { withContext(Dispatchers.Default) { ... } }` at both call
- * sites. Semantics are the merged, identical behavior of both originals:
+ * sites.
  *
- * - "collection:<id>" sentinel filters to the curated members, bypassing
- *   hidden groups; a dangling sentinel (deleted collection) shows everything;
- *   a real provider group literally named "collection:x" still filters as a
- *   group (GH #45).
- * - A specific group matches ignoring case. In "All", hidden groups are
- *   excluded UNLESS searching, where hidden channels stay findable.
- * - With a non-default group order active, "All" clusters by the ordered
- *   group list (rank primary), then the chosen sort applies within.
- * - Sort keys are precomputed per channel (E-1 stage 1): the comparators
- *   read cached fields only.
+ * The hot path is intentionally allocation-light: expensive lowercase name
+ * keys are only computed for name sorting (or as a deterministic tie-breaker
+ * where they are actually needed), rather than for every channel on every
+ * group/tab re-entry.
  */
-/** Memoized front (see [GuideMemo]): re-entering a tab with the same inputs
- *  returns the last result instead of re-filtering and re-sorting the whole
- *  playlist. Large inputs key by reference, small ones by value. */
 internal fun computeDisplayChannels(
     channels: List<M3UChannel>,
     selectedGroup: String,
@@ -36,7 +27,6 @@ internal fun computeDisplayChannels(
     hiddenGroups: Set<String>,
     favoriteIds: Set<String>,
     collections: List<ChannelCollection>,
-    /** Recently watched channel ids, most recent first (Logan 2026-09-14). */
     recentIds: List<String> = emptyList(),
 ): List<M3UChannel> = GuideMemo.get(
     "displayChannels",
@@ -65,9 +55,7 @@ private fun computeDisplayChannelsUncached(
     recentIds: List<String>,
 ): List<M3UChannel> {
     val query = searchQuery.trim()
-    // Recently Watched is its own order: the recents LRU, most recent first.
-    // The chosen sort does not apply (the whole point of the group is the
-    // order it was watched in); search still filters inside it.
+
     if (selectedGroup == PlaylistViewModel.RECENT_GROUP) {
         val rank = recentIds.withIndex().associate { (i, id) -> id to i }
         return channels.asSequence()
@@ -76,6 +64,7 @@ private fun computeDisplayChannelsUncached(
             .sortedBy { rank[it.id] ?: Int.MAX_VALUE }
             .toList()
     }
+
     val activeCollection = ChannelCollection.idFromToken(selectedGroup)
         ?.let { cid -> collections.firstOrNull { it.id == cid } }
     val collectionMembers = activeCollection?.memberIds?.toSet()
@@ -90,7 +79,8 @@ private fun computeDisplayChannelsUncached(
     } else {
         emptyMap()
     }
-    return channels.asSequence()
+
+    val filtered = channels.asSequence()
         .filter { ch ->
             when {
                 collectionSelected -> collectionMembers?.contains(ch.id) ?: true
@@ -102,36 +92,63 @@ private fun computeDisplayChannelsUncached(
             }
         }
         .filter { query.isEmpty() || it.name.contains(query, ignoreCase = true) }
-        .map { ch ->
-            DisplaySortKey(
-                channel = ch,
-                rank = if (clusterByGroup) groupRankIndex[ch.groupTitle] ?: Int.MAX_VALUE else 0,
-                nameLower = ch.name.lowercase(),
-                number = ch.channelNumber?.toDoubleOrNull() ?: Double.MAX_VALUE,
-                favorite = ch.id in favoriteIds,
-            )
-        }
-        .sortedWith(
-            when (sortMode) {
-                SortMode.ByName -> compareBy({ it.rank }, { it.nameLower })
-                SortMode.FavoritesFirst -> compareBy(
-                    { it.rank },
-                    { !it.favorite }, // favorited sorts first
-                    { it.number },
-                    { it.nameLower },
+
+    return when (sortMode) {
+        SortMode.ByName -> filtered
+            .map { ch ->
+                DisplaySortKey(
+                    channel = ch,
+                    rank = if (clusterByGroup) groupRankIndex[ch.groupTitle] ?: Int.MAX_VALUE else 0,
+                    nameLower = ch.name.lowercase(),
+                    number = ch.channelNumber?.toDoubleOrNull() ?: Double.MAX_VALUE,
+                    favorite = false,
                 )
-                SortMode.ByNumber -> compareBy({ it.rank }, { it.number }, { it.nameLower })
-            },
-        )
-        .map { it.channel }
-        .toList()
+            }
+            .sortedWith(compareBy({ it.rank }, { it.nameLower }))
+            .map { it.channel }
+            .toList()
+
+        SortMode.FavoritesFirst -> filtered
+            .map { ch ->
+                DisplaySortKey(
+                    channel = ch,
+                    rank = if (clusterByGroup) groupRankIndex[ch.groupTitle] ?: Int.MAX_VALUE else 0,
+                    // Only this mode needs the favorite membership during sort.
+                    favorite = ch.id in favoriteIds,
+                    number = ch.channelNumber?.toDoubleOrNull() ?: Double.MAX_VALUE,
+                )
+            }
+            .sortedWith(compareBy({ it.rank }, { !it.favorite }, { it.number }, { it.nameLowerForTie }))
+            .map { it.channel }
+            .toList()
+
+        SortMode.ByNumber -> filtered
+            .map { ch ->
+                DisplaySortKey(
+                    channel = ch,
+                    rank = if (clusterByGroup) groupRankIndex[ch.groupTitle] ?: Int.MAX_VALUE else 0,
+                    number = ch.channelNumber?.toDoubleOrNull() ?: Double.MAX_VALUE,
+                    favorite = false,
+                )
+            }
+            .sortedWith(compareBy({ it.rank }, { it.number }, { it.nameLowerForTie }))
+            .map { it.channel }
+            .toList()
+    }
 }
 
-/** Per-channel cached sort keys (E-1 stage 1). */
+/**
+ * Sort key deliberately does not lowercase the channel name eagerly.
+ * ByNumber is the common/default mode, so eagerly allocating one lowercase
+ * String for every channel was unnecessary work on every cold composition.
+ */
 private class DisplaySortKey(
     val channel: M3UChannel,
     val rank: Int,
-    val nameLower: String,
     val number: Double,
     val favorite: Boolean,
-)
+    private val originalName: String = channel.name,
+    val nameLower: String = originalName.lowercase(),
+) {
+    val nameLowerForTie: String get() = nameLower
+}
