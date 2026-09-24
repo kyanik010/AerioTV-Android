@@ -1,0 +1,219 @@
+package com.aeriotv.android.feature.activation
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.aeriotv.android.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.NetworkInterface
+import java.net.URL
+import java.util.Collections
+import java.util.Locale
+
+private enum class ActivationState { CHECKING, NOT_REGISTERED, ACTIVE, SUSPENDED, EXPIRED, ERROR }
+
+@Composable
+fun ActivationGate(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val activationId = remember { readActivationId(context) }
+    var state by remember { mutableStateOf(ActivationState.CHECKING) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    suspend fun check() {
+        state = ActivationState.CHECKING
+        errorText = null
+        val result = withContext(Dispatchers.IO) {
+            runCatching { requestActivation(activationId) }
+        }
+        result.onSuccess { response ->
+            state = when {
+                response.activated -> ActivationState.ACTIVE
+                response.status == "expired" -> ActivationState.EXPIRED
+                response.status == "suspended" -> ActivationState.SUSPENDED
+                else -> ActivationState.NOT_REGISTERED
+            }
+        }.onFailure {
+            state = ActivationState.ERROR
+            errorText = "تعذر الاتصال بخادم التفعيل"
+        }
+    }
+
+    LaunchedEffect(activationId) {
+        check()
+        while (true) {
+            delay(30_000)
+            if (state != ActivationState.ACTIVE) check()
+        }
+    }
+
+    if (state == ActivationState.ACTIVE) {
+        content()
+        return
+    }
+
+    ActivationScreen(
+        activationId = activationId,
+        state = state,
+        errorText = errorText,
+        onRetry = { scope.launch { check() } },
+    )
+}
+
+@Composable
+private fun ActivationScreen(
+    activationId: String,
+    state: ActivationState,
+    errorText: String?,
+    onRetry: () -> Unit,
+) {
+    val context = LocalContext.current
+    Box(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier.widthIn(max = 520.dp).padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Text(
+                text = "MAC Address",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = activationId,
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+            )
+
+            when (state) {
+                ActivationState.CHECKING -> CircularProgressIndicator()
+                ActivationState.NOT_REGISTERED -> {
+                    Text(
+                        text = "هذا الجهاز غير مفعل",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                    )
+                    OutlinedButton(onClick = onRetry) { Text("إعادة التحقق") }
+                }
+                ActivationState.SUSPENDED -> {
+                    Text("هذا الجهاز موقوف", textAlign = TextAlign.Center)
+                    OutlinedButton(onClick = onRetry) { Text("إعادة التحقق") }
+                }
+                ActivationState.EXPIRED -> {
+                    Text("انتهى التفعيل", textAlign = TextAlign.Center)
+                    OutlinedButton(onClick = onRetry) { Text("إعادة التحقق") }
+                }
+                ActivationState.ERROR -> {
+                    Text(errorText ?: "تعذر التحقق", textAlign = TextAlign.Center)
+                    OutlinedButton(onClick = onRetry) { Text("إعادة المحاولة") }
+                }
+                ActivationState.ACTIVE -> Unit
+            }
+
+            Button(onClick = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("MAC Address", activationId))
+                Toast.makeText(context, "تم نسخ العنوان", Toast.LENGTH_SHORT).show()
+            }) {
+                Text("نسخ العنوان")
+            }
+        }
+    }
+}
+
+private data class ActivationResponse(
+    val activated: Boolean,
+    val status: String?,
+)
+
+private fun requestActivation(activationId: String): ActivationResponse {
+    val connection = (URL(BuildConfig.DEVICE_ACTIVATION_URL).openConnection() as HttpURLConnection).apply {
+        requestMethod = "POST"
+        connectTimeout = 10_000
+        readTimeout = 10_000
+        doOutput = true
+        setRequestProperty("Content-Type", "application/json")
+        setRequestProperty("Accept", "application/json")
+    }
+
+    try {
+        connection.outputStream.use {
+            it.write(JSONObject().put("mac_address", activationId).toString().toByteArray(Charsets.UTF_8))
+        }
+        val stream = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
+        val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+        if (connection.responseCode !in 200..299) error("HTTP ${connection.responseCode}")
+        val json = JSONObject(body)
+        return ActivationResponse(
+            activated = json.optBoolean("activated", false),
+            status = json.optString("status").takeIf { it.isNotBlank() },
+        )
+    } finally {
+        connection.disconnect()
+    }
+}
+
+private fun readActivationId(context: Context): String {
+    val candidates = listOf("wlan0", "eth0", "en0")
+    for (name in candidates) {
+        val mac = runCatching { NetworkInterface.getByName(name)?.hardwareAddress?.toMac() }.getOrNull()
+        if (!mac.isNullOrBlank() && mac != "02:00:00:00:00:00") return mac
+    }
+
+    val interfaces = runCatching { Collections.list(NetworkInterface.getNetworkInterfaces()) }.getOrDefault(emptyList())
+    for (networkInterface in interfaces) {
+        val mac = runCatching { networkInterface.hardwareAddress?.toMac() }.getOrNull()
+        if (!mac.isNullOrBlank() && mac != "02:00:00:00:00:00") return mac
+    }
+
+    // Android 10+ intentionally hides the factory Wi-Fi MAC from ordinary apps.
+    // Keep the customer-facing activation format stable by deriving a persistent
+    // MAC-shaped identifier from ANDROID_ID when the real hardware address is unavailable.
+    val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        ?: Build.FINGERPRINT
+    return macFromStableId(androidId)
+}
+
+private fun ByteArray.toMac(): String =
+    joinToString(":") { byte -> "%02X".format(Locale.US, byte.toInt() and 0xFF) }
+
+private fun macFromStableId(value: String): String {
+    val digest = java.security.MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8))
+    val bytes = digest.copyOf(6)
+    bytes[0] = (bytes[0].toInt() and 0xFC or 0x02).toByte()
+    return bytes.toMac()
+}

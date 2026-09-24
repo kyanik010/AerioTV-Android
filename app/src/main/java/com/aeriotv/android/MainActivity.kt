@@ -43,6 +43,7 @@ import com.aeriotv.android.feature.miniplayer.MiniPlayerSession
 import com.aeriotv.android.feature.player.ExoWindowState
 import com.aeriotv.android.feature.player.PersistentExoWindow
 import com.aeriotv.android.feature.splash.SplashGate
+import com.aeriotv.android.feature.activation.ActivationGate
 import com.aeriotv.android.ui.theme.AerioTVTheme
 import com.aeriotv.android.ui.scale.LocalAppTextScale
 import com.aeriotv.android.ui.scale.ProvideAppTextScale
@@ -1102,6 +1103,7 @@ class MainActivity : ComponentActivity() {
                         // chrome and the user only sees the SurfaceView
                         // punch-through (video) -- chrome IS in state
                         // but never reaches the pixels.
+                        ActivationGate {
                         Box(modifier = Modifier.fillMaxSize()) {
                             // PersistentExoWindow is declared FIRST so it
                             // sits at the bottom of the z-stack. Fullscreen
@@ -1150,6 +1152,7 @@ class MainActivity : ComponentActivity() {
                             companionCode?.let {
                                 com.aeriotv.android.feature.cast.companion.CompanionPairingOverlay(it)
                             }
+                        }
                         }
                     }
                 }
