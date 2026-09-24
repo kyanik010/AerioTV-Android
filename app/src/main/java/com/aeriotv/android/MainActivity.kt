@@ -43,6 +43,7 @@ import com.aeriotv.android.feature.miniplayer.MiniPlayerSession
 import com.aeriotv.android.feature.player.ExoWindowState
 import com.aeriotv.android.feature.player.PersistentExoWindow
 import com.aeriotv.android.feature.splash.SplashGate
+import com.aeriotv.android.feature.activation.ActivationGate
 import com.aeriotv.android.ui.theme.AerioTVTheme
 import com.aeriotv.android.ui.scale.LocalAppTextScale
 import com.aeriotv.android.ui.scale.ProvideAppTextScale
@@ -1150,6 +1151,7 @@ class MainActivity : ComponentActivity() {
                             companionCode?.let {
                                 com.aeriotv.android.feature.cast.companion.CompanionPairingOverlay(it)
                             }
+                        }
                         }
                     }
                 }
