@@ -88,29 +88,53 @@ fun ActivationGate(
             state = ActivationState.ACTIVATING
 
             val video = config.video
-            val videoResult = withContext(Dispatchers.IO) {
-                playlistRepository.loadAndPersist(
-                    PlaylistRepository.SaveRequest(
-                        sourceType = SourceType.XtreamCodes,
-                        name = "Live TV",
-                        url = video.serverUrl,
-                        username = video.username,
-                        password = video.password,
-                        vodEnabled = true,
-                    ),
-                )
-            }
 
-            if (videoResult.isFailure) {
-                state = ActivationState.ERROR
-                errorText = "تعذر تحميل خدمة الفيديو"
-                return@onSuccess
+            // IMPORTANT: activation is a control-plane check, not a playlist
+            // refresh. The old code called loadAndPersist() on every launch,
+            // which made PlaylistRepository treat every app start as a source
+            // save/refresh and defeated the existing Room channel cache.
+            // Reuse the persisted playlist when the Supabase credentials have
+            // not changed. Only rewrite it when the admin actually changed the
+            // assigned Xtream subscription.
+            val current = playlistRepository.activePlaylist()
+            val currentMatches = current != null &&
+                current.resolvedSourceType() == SourceType.XtreamCodes &&
+                current.urlString.trimEnd('/') == video.serverUrl.trimEnd('/') &&
+                current.username.orEmpty() == video.username &&
+                current.password.orEmpty() == video.password
+
+            if (!currentMatches) {
+                val videoResult = withContext(Dispatchers.IO) {
+                    playlistRepository.loadAndPersist(
+                        PlaylistRepository.SaveRequest(
+                            sourceType = SourceType.XtreamCodes,
+                            name = "Live TV",
+                            url = video.serverUrl,
+                            username = video.username,
+                            password = video.password,
+                            vodEnabled = true,
+                        ),
+                    )
+                }
+
+                if (videoResult.isFailure) {
+                    state = ActivationState.ERROR
+                    errorText = "تعذر تحميل خدمة الفيديو"
+                    return@onSuccess
+                }
+            } else {
+                // The playlist row and its channel snapshot remain intact.
+                // PlaylistViewModel.bootstrap() will paint the cached channels
+                // immediately and apply its normal 24h freshness gate.
             }
 
             val audioUrl = config.audio?.m3uUrl
             if (!audioUrl.isNullOrBlank()) {
+                // AudioSourceManager owns its own persisted source/cache. Do not
+                // force a network playlist load when the assigned M3U is the
+                // same source already configured for this device.
                 val audioResult = withContext(Dispatchers.IO) {
-                    audioSourceManager.loadPlaylist(audioUrl)
+                    audioSourceManager.loadPlaylistIfChanged(audioUrl)
                 }
                 if (audioResult.isFailure) {
                     state = ActivationState.ERROR
