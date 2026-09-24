@@ -326,11 +326,8 @@ fun GuideScreen(
             groups.map { it to com.aeriotv.android.feature.livetv.groupDisplayName(it) } +
             end.map { ChannelCollection.token(it.id) to it.name }
     }
-    val groupedChannels by produceState(
-        initialValue = computeDisplayChannels(
-            state.channels, state.selectedGroup, state.searchQuery, state.sortMode,
-            allGroupNames, groupSortMode, effectiveHidden, favoriteIds, collections, recentChannelIds,
-        ),
+    val groupedChannels by produceState<List<M3UChannel>?>(
+        initialValue = null,
         state.channels, state.selectedGroup, state.searchQuery, state.sortMode,
         allGroupNames, groupSortMode, effectiveHidden, favoriteIds, collections, recentChannelIds,
     ) {
@@ -341,13 +338,14 @@ fun GuideScreen(
             )
         }
     }
+    val groupedChannelList = groupedChannels ?: emptyList()
     // favoritesOnly: the starred channels in the user's favorites order,
     // joined against the loaded playlist so stale rows fall away.
     val favoriteChannels = remember(favoritesList, state.channels) {
         val byId = state.channels.associateBy { it.id }
         favoritesList.mapNotNull { byId[it.channelId] }
     }
-    val displayChannels = if (favoritesOnly) favoriteChannels else groupedChannels
+    val displayChannels = if (favoritesOnly) favoriteChannels else groupedChannelList
 
     // Grid window: the playlist's Guide Days setting (epgRetentionDays) in
     // BOTH directions (Logan 2026-09-11); the retired Settings > Network
