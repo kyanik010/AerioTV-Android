@@ -269,7 +269,12 @@ fun SettingsScreen(
             // hosts cannot drift from this list (plan B7: frozen canon).
             if (fullRoot) {
                 items(
-                    items = visibleSettingsSections(isTv = isTv, updaterEnabled = updaterEnabled),
+                    items = visibleSettingsSections(isTv = isTv, updaterEnabled = updaterEnabled).mapNotNull { group ->
+                        val filtered = group.sections.filterNot {
+                            it == SettingsSection.Developer || it == SettingsSection.About
+                        }
+                        if (filtered.isEmpty()) null else group.copy(sections = filtered)
+                    },
                     key = { it.key },
                 ) { group ->
                     SettingsSectionGroup(
