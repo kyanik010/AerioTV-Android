@@ -56,7 +56,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.aeriotv.android.core.data.db.entity.sourceTypeDisplayLabel
 import com.aeriotv.android.core.preferences.AppLanguage
 import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.feature.playlist.PlaylistViewModel
