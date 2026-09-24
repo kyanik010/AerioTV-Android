@@ -1,7 +1,9 @@
 package com.aeriotv.android
 
 import android.app.PictureInPictureParams
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
@@ -12,8 +14,6 @@ import android.util.Rational
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import android.content.Context
-import android.content.res.Configuration
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.enableEdgeToEdge
@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -1053,12 +1052,6 @@ class MainActivity : ComponentActivity() {
         // via a top-level effect, navigates, then clears it.
         if (!castLaunch) captureDeepLinkFrom(intent)
         setContent {
-            val appLanguage = LanguageManager.get(this@MainActivity)
-            CompositionLocalProvider(
-                LocalAppLanguage provides appLanguage,
-                androidx.compose.ui.platform.LocalLayoutDirection provides
-                    if (appLanguage == AppLanguage.ARABIC) LayoutDirection.Rtl else LayoutDirection.Ltr,
-            ) {
             val theme by appPreferences.selectedTheme.collectAsState(initial = AppTheme.Aerio)
             // DEFAULT MUST be Dark: the initial (pre-first-emission) value AND
             // the persisted-absence value both resolve to Dark, so an existing
@@ -1090,6 +1083,10 @@ class MainActivity : ComponentActivity() {
             val roundedArtwork by appPreferences.roundedArtwork.collectAsState(initial = true)
             val roundedArtworkGuide by appPreferences.roundedArtworkGuide.collectAsState(initial = false)
             CompositionLocalProvider(
+                LocalAppLanguage provides LanguageManager.get(this@MainActivity),
+                androidx.compose.ui.platform.LocalLayoutDirection provides
+                    if (LanguageManager.get(this@MainActivity) == AppLanguage.ARABIC)
+                        LayoutDirection.Rtl else LayoutDirection.Ltr,
                 LocalAppTextScale provides textScale,
                 com.aeriotv.android.ui.scale.LocalSubtextScale provides subtextScale,
                 com.aeriotv.android.ui.theme.LocalTextContrast provides textContrast,
@@ -1186,7 +1183,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-            }
             }
             }
             }
