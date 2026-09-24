@@ -2,6 +2,7 @@ package com.aeriotv.android.feature.activation
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
@@ -26,6 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,6 +55,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.aeriotv.android.BuildConfig
 import com.aeriotv.android.core.data.SourceType
+import com.aeriotv.android.core.preferences.AppLanguage
+import com.aeriotv.android.core.preferences.LanguageManager
+import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.core.data.repository.PlaylistRepository
 import com.aeriotv.android.feature.audio.AudioSourceManager
 import kotlinx.coroutines.Dispatchers
@@ -200,97 +206,125 @@ private fun ActivationScreen(
     onRetry: () -> Unit,
 ) {
     val context = LocalContext.current
-    val logoRes = com.aeriotv.android.R.drawable.eagle_x_logo
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.ARABIC
+    val logoRes = com.aeriotv.android.R.drawable.eagle_x_activation_logo
     val qrRes = com.aeriotv.android.R.drawable.eagle_x_support_qr
-
+    var showLanguageMenu by remember { mutableStateOf(false) }
 
     val statusText = when (state) {
-        ActivationState.CHECKING -> "جاري التحقق من الجهاز..."
-        ActivationState.ACTIVATING -> "جاري تجهيز الاشتراك..."
-        ActivationState.NOT_REGISTERED -> "هذا الجهاز غير مفعّل"
-        ActivationState.SUSPENDED -> "هذا الجهاز موقوف"
-        ActivationState.EXPIRED -> "انتهى تفعيل هذا الجهاز"
-        ActivationState.ERROR -> errorText ?: "تعذر التحقق من الجهاز"
+        ActivationState.CHECKING -> if (isArabic) "جاري التحقق من الجهاز..." else "Checking device..."
+        ActivationState.ACTIVATING -> if (isArabic) "جاري تجهيز الاشتراك..." else "Preparing subscription..."
+        ActivationState.NOT_REGISTERED -> if (isArabic) "هذا الجهاز غير مفعّل" else "This device is not activated"
+        ActivationState.SUSPENDED -> if (isArabic) "هذا الجهاز موقوف" else "This device is suspended"
+        ActivationState.EXPIRED -> if (isArabic) "انتهى تفعيل هذا الجهاز" else "This device activation has expired"
+        ActivationState.ERROR -> if (isArabic) (errorText ?: "تعذر التحقق من الجهاز") else "Unable to verify the device"
         ActivationState.ACTIVE -> ""
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(
-        LocalLayoutDirection provides LayoutDirection.Rtl,
+    Box(
+        modifier = Modifier.fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF050912), Color(0xFF0A1220), Color(0xFF03060B))))
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF07090D))
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            contentAlignment = Alignment.Center,
+        Card(
+            modifier = Modifier.widthIn(max = 620.dp).fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xCC0D1522)),
+            border = BorderStroke(1.dp, Color(0x335BE7F2)),
         ) {
             Column(
-                modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Image(
                     painter = painterResource(id = logoRes),
                     contentDescription = "Eagle X",
-                    modifier = Modifier.size(96.dp),
+                    modifier = Modifier.size(148.dp),
                 )
+                Text("Eagle X", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
 
-                Text(
-                    text = "Eagle X",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(
-                        text = "MAC ADDRESS",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFB8C0CC),
-                        textAlign = TextAlign.Start,
-                    )
+                Box {
                     OutlinedButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("MAC Address", activationId))
-                            Toast.makeText(context, "تم نسخ العنوان", Toast.LENGTH_SHORT).show()
-                        },
+                        onClick = { showLanguageMenu = true },
+                        shape = RoundedCornerShape(12.dp),
+                    ) { Text("اللغة", fontWeight = FontWeight.SemiBold) }
+                    DropdownMenu(
+                        expanded = showLanguageMenu,
+                        onDismissRequest = { showLanguageMenu = false },
                     ) {
-                        Text("نسخ", fontWeight = FontWeight.SemiBold)
+                        DropdownMenuItem(
+                            text = { Text("العربية") },
+                            onClick = {
+                                LanguageManager.set(context, AppLanguage.ARABIC)
+                                showLanguageMenu = false
+                                (context as? Activity)?.recreate()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("English") },
+                            onClick = {
+                                LanguageManager.set(context, AppLanguage.ENGLISH)
+                                showLanguageMenu = false
+                                (context as? Activity)?.recreate()
+                            },
+                        )
                     }
                 }
 
                 Text(
-                    text = activationId,
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleMedium,
+                    text = if (isArabic) "عنوان MAC" else "MAC ADDRESS",
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
+                    color = Color(0xFFB8C0CC),
                 )
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF11151C)),
-                    border = BorderStroke(1.dp, Color(0xFF252B35)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0x332C3C4D)),
+                    border = BorderStroke(1.dp, Color(0x556BE7F2)),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            activationId,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("MAC Address", activationId))
+                                Toast.makeText(
+                                    context,
+                                    if (isArabic) "تم نسخ العنوان" else "MAC address copied",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                        ) { Text(if (isArabic) "نسخ" else "Copy") }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0x44131D29)),
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = statusText,
+                            statusText,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
@@ -299,36 +333,35 @@ private fun ActivationScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
                 Text(
-                    text = "للتفعيل أو الحصول على اشتراك IPTV\nتواصل مع الدعم عبر مسح رمز QR",
+                    text = if (isArabic) {
+                        "للتفعيل أو الحصول على اشتراك IPTV\nتواصل مع الدعم عبر مسح رمز QR"
+                    } else {
+                        "To activate or get an IPTV subscription\ncontact support by scanning the QR code"
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFFB8C0CC),
+                    color = Color(0xFFD1D7E0),
                     textAlign = TextAlign.Center,
                 )
 
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                ) {
+                Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                     Image(
                         painter = painterResource(id = qrRes),
                         contentDescription = "Support QR Code",
-                        modifier = Modifier.size(176.dp).padding(8.dp),
+                        modifier = Modifier.size(176.dp).padding(9.dp),
                     )
                 }
 
                 Button(
                     onClick = onRetry,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
                     enabled = state != ActivationState.CHECKING && state != ActivationState.ACTIVATING,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text = if (state == ActivationState.ERROR) "إعادة المحاولة" else "إعادة التحقق",
+                        if (isArabic) "إعادة التحقق" else "Verify Again",
                         fontWeight = FontWeight.Bold,
                     )
                 }

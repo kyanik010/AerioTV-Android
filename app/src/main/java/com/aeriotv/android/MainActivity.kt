@@ -1,9 +1,10 @@
 package com.aeriotv.android
 
 import android.app.PictureInPictureParams
+import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -34,10 +35,14 @@ import com.aeriotv.android.core.tv.TvActionMenuDialog
 import com.aeriotv.android.core.tv.TvMenuAction
 import com.aeriotv.android.core.tv.rememberTvMenuGuard
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.LayoutDirection
 import com.aeriotv.android.core.cast.AerioCastReceiverController
 import com.aeriotv.android.core.pip.PipState
 import com.aeriotv.android.core.playback.AerioExoPlayerHolder
 import com.aeriotv.android.core.preferences.AppPreferences
+import com.aeriotv.android.core.preferences.AppLanguage
+import com.aeriotv.android.core.preferences.LanguageManager
+import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.core.system.NotificationPermissionGate
 import com.aeriotv.android.feature.miniplayer.MiniPlayerSession
 import com.aeriotv.android.feature.player.ExoWindowState
@@ -58,6 +63,13 @@ import kotlinx.coroutines.flow.first
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        val language = LanguageManager.get(newBase)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(if (language == AppLanguage.ARABIC) java.util.Locale("ar") else java.util.Locale.ENGLISH)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
 
     @Inject lateinit var appPreferences: AppPreferences
     @Inject lateinit var miniPlayerSession: MiniPlayerSession
@@ -1070,6 +1082,10 @@ class MainActivity : ComponentActivity() {
             val roundedArtwork by appPreferences.roundedArtwork.collectAsState(initial = true)
             val roundedArtworkGuide by appPreferences.roundedArtworkGuide.collectAsState(initial = false)
             CompositionLocalProvider(
+                LocalAppLanguage provides LanguageManager.get(this@MainActivity),
+                androidx.compose.ui.platform.LocalLayoutDirection provides
+                    if (LanguageManager.get(this@MainActivity) == AppLanguage.ARABIC)
+                        LayoutDirection.Rtl else LayoutDirection.Ltr,
                 LocalAppTextScale provides textScale,
                 com.aeriotv.android.ui.scale.LocalSubtextScale provides subtextScale,
                 com.aeriotv.android.ui.theme.LocalTextContrast provides textContrast,

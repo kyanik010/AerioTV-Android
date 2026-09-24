@@ -30,10 +30,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aeriotv.android.R
-import com.aeriotv.android.feature.settings.SettingsViewModel
 import com.aeriotv.android.ui.settings.rememberIsTvDevice
 import kotlinx.coroutines.delay
 
@@ -59,89 +56,41 @@ import kotlinx.coroutines.delay
 fun SplashGate(
     content: @Composable () -> Unit,
 ) {
-    // ActivationGate is the true first-run gate. Keeping the legacy splash
-    // overlay here would hide the MAC/activation screen for 2.8 seconds and
-    // make the old AerioTV UI appear to flash during cold launch.
-    content()
+    var finished by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(1_200L)
+        finished = true
+    }
+    if (finished) content() else SplashContent()
 }
 
 @Composable
 private fun SplashContent(modifier: Modifier = Modifier) {
-    // iOS SplashView per-platform metrics: logo / title / subtitle.
-    // tvOS 160/72/28; iPhone (compact) 100/50/18; iPad (regular) 130/64/24.
     val isTv = rememberIsTvDevice()
-    val compact = LocalConfiguration.current.smallestScreenWidthDp < 600
-    // TV metrics are scaled to Apple TV's PROPORTIONS, not its point values:
-    // tvOS lays out on a 1920pt canvas while a 1080p Android TV is ~960dp
-    // wide, so the same numbers drew everything twice as large (Logan
-    // 2026-09-03, emulator vs Apple TV side by side). Logo 8.3% of width,
-    // title 3.75%, subtitle 1.5%.
-    val logoSize = if (isTv) 80.dp else if (compact) 100.dp else 130.dp
-    val titleSize = if (isTv) 36.sp else if (compact) 50.sp else 64.sp
-    val subtitleSize = if (isTv) 14.sp else if (compact) 18.sp else 24.sp
-    val logoBottomPad = if (isTv) 32.dp else if (compact) 24.dp else 32.dp
-    val subtitleTopPad = if (isTv) 6.dp else 10.dp
-    val glowRadius = if (isTv) 20.dp else if (compact) 20.dp else 30.dp
-
-    val accent = Color(0xFF1AC4D8)
-    // iOS fade envelope: easeIn 0.4s -> hold -> easeOut 0.4s starting at 2.3s.
     var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(durationMillis = 400),
-        label = "splashAlpha",
+        animationSpec = tween(durationMillis = 300),
+        label = "eagleSplashAlpha",
     )
-    LaunchedEffect(Unit) {
-        visible = true
-        delay(2_300L)
-        visible = false
-    }
+    LaunchedEffect(Unit) { visible = true }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            // iOS splash sits on PURE BLACK, not the theme background.
-            .background(Color.Black)
-            .alpha(alpha),
+        modifier = modifier.fillMaxSize().background(Color.Black).alpha(alpha),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // The iOS rounded-square treatment is baked into the PNG.
-            // Apple's `.shadow(color: 1AC4D8 @ 0.55, radius, y: 7.5% of size)`:
-            // a soft cyan glow behind the tile, offset slightly downward.
-            val glowPx = with(LocalDensity.current) { glowRadius.toPx() }
-            val logoPx = with(LocalDensity.current) { logoSize.toPx() }
             Image(
-                painter = painterResource(id = R.drawable.aerio_logo),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(logoSize)
-                    .drawBehind {
-                        val c = Offset(size.width / 2f, size.height / 2f + logoPx * 0.075f)
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(accent.copy(alpha = 0.55f), accent.copy(alpha = 0f)),
-                                center = c,
-                                radius = logoPx / 2f + glowPx * 2f,
-                            ),
-                            radius = logoPx / 2f + glowPx * 2f,
-                            center = c,
-                        )
-                    },
+                painter = painterResource(id = R.drawable.eagle_x_launcher),
+                contentDescription = "Eagle X",
+                modifier = Modifier.size(if (isTv) 110.dp else 120.dp),
             )
-            Spacer(Modifier.height(logoBottomPad))
+            Spacer(Modifier.height(18.dp))
             Text(
-                text = "AerioTV",
-                fontSize = titleSize,
+                "Eagle X",
+                fontSize = if (isTv) 30.sp else 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
-            )
-            Spacer(Modifier.height(subtitleTopPad))
-            Text(
-                text = "Live TV  ·  Movies  ·  Series",
-                fontSize = subtitleSize,
-                fontWeight = FontWeight.Light,
-                color = accent,
             )
         }
     }

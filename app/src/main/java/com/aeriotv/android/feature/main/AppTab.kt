@@ -38,3 +38,17 @@ enum class AppTab(
     Settings("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
     Search("search", "Search", Icons.Filled.Search, Icons.Outlined.Search),
 }
+
+
+fun AppTab.localizedLabel(language: com.aeriotv.android.core.preferences.AppLanguage): String =
+    if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) label else when (this) {
+        AppTab.LiveTV -> "التلفزيون المباشر"
+        AppTab.Favorites -> "المفضلة"
+        AppTab.DVR -> "التسجيلات"
+        AppTab.OnDemand -> "عند الطلب"
+        AppTab.Movies -> "الأفلام"
+        AppTab.TVShows -> "المسلسلات"
+        AppTab.Audio -> "الصوت"
+        AppTab.Settings -> "الإعدادات"
+        AppTab.Search -> "البحث"
+    }

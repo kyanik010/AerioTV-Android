@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aeriotv.android.ui.settings.LocalSettingsInPane
 import com.aeriotv.android.ui.settings.SettingsNavRow
+import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.ui.settings.SettingsSectionHeader
 import com.aeriotv.android.ui.settings.TvSettingsMetrics
 
@@ -294,8 +295,8 @@ private fun SettingsSidebar(
             }
             items(items = group.sections, key = { "row-${it.name}" }) { section ->
                 SettingsNavRow(
-                    title = section.title,
-                    subtitle = settingsSectionSubtitle(section, syncEnabled),
+                    title = section.localizedTitle(LocalAppLanguage.current),
+                    subtitle = settingsSectionSubtitle(section, syncEnabled, LocalAppLanguage.current),
                     icon = section.icon,
                     onClick = { onSelect(SettingsRoute.Section(section)) },
                     selected = selection is SettingsRoute.Section &&
@@ -527,16 +528,19 @@ private fun SettingsTvRail(
     // Flatten to one list so the selected index (for initial scroll + focus) is
     // a simple lookup rather than a per-section calculation. About arrives from
     // the closing section group like any other row.
-    val rows = remember(sections, activePlaylistName, syncEnabled) {
+    val language = LocalAppLanguage.current
+    val rows = remember(sections, activePlaylistName, syncEnabled, language) {
         buildList {
             add(Triple(SettingsRoute.Playlists as SettingsRoute, "Playlists", activePlaylistName))
             sections.forEach { group ->
-                group.sections.forEach { section ->
+                group.sections.filterNot {
+                    it == SettingsSection.Developer || it == SettingsSection.About
+                }.forEach { section ->
                     add(
                         Triple(
                             SettingsRoute.Section(section),
-                            section.title,
-                            settingsSectionSubtitle(section, syncEnabled),
+                            section.localizedTitle(language),
+                            settingsSectionSubtitle(section, syncEnabled, language),
                         ),
                     )
                 }

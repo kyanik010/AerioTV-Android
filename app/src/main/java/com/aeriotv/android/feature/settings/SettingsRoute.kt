@@ -28,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.Composable
 import com.aeriotv.android.core.data.SourceType
+import com.aeriotv.android.core.preferences.AppLanguage
 
 /** One destination in the Settings area. */
 sealed interface SettingsRoute {
@@ -125,13 +126,6 @@ fun visibleSettingsSections(
             if (updaterEnabled) add(SettingsSection.AppUpdates)
         },
     ),
-    SettingsSectionGroupSpec(
-        key = "system",
-        // Header-less closing group (Settings phase 1): Developer and About sit
-        // together at the bottom with nothing to label them.
-        header = "",
-        sections = listOf(SettingsSection.Developer, SettingsSection.About),
-    ),
 )
 
 /**
@@ -162,6 +156,48 @@ fun settingsRouteForDeepLinkPage(
     "playlist-detail" -> activePlaylistId?.let { SettingsRoute.PlaylistDetail(it) }
     "edit-playlist" -> activePlaylistId?.let { SettingsRoute.EditPlaylist(it) }
     else -> null
+}
+
+fun SettingsSection.localizedTitle(language: AppLanguage): String =
+    if (language == AppLanguage.ENGLISH) title else when (this) {
+        SettingsSection.LiveTV -> "التلفزيون المباشر"
+        SettingsSection.Player -> "المشغل"
+        SettingsSection.MoviesAndTvShows -> "الأفلام والمسلسلات"
+        SettingsSection.DvrSettings -> "التسجيلات"
+        SettingsSection.Appearance -> "المظهر"
+        SettingsSection.General -> "عام"
+        SettingsSection.RemoteControl -> "التحكم عن بُعد"
+        SettingsSection.Sync -> "المزامنة"
+        SettingsSection.AppUpdates -> "تحديثات التطبيق"
+        SettingsSection.Developer -> "المطور"
+        SettingsSection.About -> "حول"
+    }
+
+fun settingsSectionSubtitle(
+    section: SettingsSection,
+    syncEnabled: Boolean,
+    language: AppLanguage = AppLanguage.ENGLISH,
+): String? {
+    if (section == SettingsSection.Sync) {
+        return if (language == AppLanguage.ARABIC) {
+            if (syncEnabled) "مفعّل" else "متوقف"
+        } else {
+            if (syncEnabled) "On" else "Off"
+        }
+    }
+    return if (language == AppLanguage.ENGLISH) section.subtitle else when (section) {
+        SettingsSection.LiveTV -> "الدليل والمجموعات والشعارات والألوان"
+        SettingsSection.Player -> "إعدادات المشغل"
+        SettingsSection.MoviesAndTvShows -> "الأفلام والمسلسلات"
+        SettingsSection.DvrSettings -> "التسجيلات"
+        SettingsSection.Appearance -> "المظهر وحجم النص وتنسيق الوقت"
+        SettingsSection.General -> "بدء التشغيل والتحديث والشبكة"
+        SettingsSection.RemoteControl -> "تخصيص أزرار جهاز التحكم"
+        SettingsSection.Sync -> null
+        SettingsSection.AppUpdates -> "التحقق من الإصدارات الجديدة"
+        SettingsSection.Developer -> "السجلات والتشخيص"
+        SettingsSection.About -> null
+    }
 }
 
 /** True when [page] needs the active playlist id before it can be resolved. */

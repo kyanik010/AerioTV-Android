@@ -71,6 +71,7 @@ import com.aeriotv.android.core.tv.TvQrLinkDialog
 import com.aeriotv.android.feature.playlist.PlaylistViewModel
 import com.aeriotv.android.ui.adaptive.adaptiveFormWidth
 import com.aeriotv.android.ui.settings.SettingsNavRow
+import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.feature.whatsnew.WhatsNewSheetOnDemand
 import com.aeriotv.android.ui.adaptive.LocalTabBarBottomInset
 import com.aeriotv.android.ui.settings.rememberIsTvDevice
@@ -268,11 +269,16 @@ fun SettingsScreen(
             // hosts cannot drift from this list (plan B7: frozen canon).
             if (fullRoot) {
                 items(
-                    items = visibleSettingsSections(isTv = isTv, updaterEnabled = updaterEnabled),
+                    items = visibleSettingsSections(isTv = isTv, updaterEnabled = updaterEnabled).mapNotNull { group ->
+                        val filtered = group.sections.filterNot {
+                            it == SettingsSection.Developer || it == SettingsSection.About
+                        }
+                        if (filtered.isEmpty()) null else group.copy(sections = filtered)
+                    },
                     key = { it.key },
                 ) { group ->
                     SettingsSectionGroup(
-                        header = group.header,
+                        header = if (LocalAppLanguage.current == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) when (group.header) { "App" -> "التطبيق"; "Device" -> "الجهاز"; else -> group.header } else group.header,
                         rows = group.sections,
                         onClick = onSectionClick,
                         footer = group.footer,
@@ -600,8 +606,8 @@ private fun SectionNavRow(
     // border+scale+wash focus treatment as every subpage (the old
     // groupRowFocus was noticeably weaker on TV).
     SettingsNavRow(
-        title = section.title,
-        subtitle = settingsSectionSubtitle(section, syncEnabled),
+        title = section.localizedTitle(LocalAppLanguage.current),
+        subtitle = settingsSectionSubtitle(section, syncEnabled, LocalAppLanguage.current),
         icon = section.icon,
         value = value,
         onClick = onClick,
@@ -955,9 +961,3 @@ enum class SettingsSection(
  * rail. Everything but Sync uses its static enum subtitle; Sync reports whether
  * Drive sync is currently on.
  */
-fun settingsSectionSubtitle(section: SettingsSection, syncEnabled: Boolean): String? =
-    if (section == SettingsSection.Sync) {
-        if (syncEnabled) "On" else "Off"
-    } else {
-        section.subtitle
-    }
