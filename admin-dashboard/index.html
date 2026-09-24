@@ -35,7 +35,7 @@ button{cursor:pointer;background:#315efb;border:0;font-weight:700}button.seconda
 <div id="results"></div>
 </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const URL='https://quaftlmuobshbnlhctmf.supabase.co';
 const KEY='sb_publishable_6mdnO-ezptIZzRKNfEbzaA_e9B-ulL5';
@@ -43,18 +43,10 @@ const API=URL+'/functions/v1/admin-control';
 const sb=supabase.createClient(URL,KEY);
 let profiles=null;
 const $=id=>document.getElementById(id);
-async function boot(){
-  const {data:{session}}=await sb.auth.getSession();
-  session?showApp(session):showLogin();
-}
+async function boot(){try{if(typeof supabase==='undefined')throw Error('تعذر تحميل مكتبة تسجيل الدخول. أعد تحميل الصفحة.');const {data:{session},error}=await sb.auth.getSession();if(error)throw error;session?showApp(session):showLogin();}catch(e){showLogin();$('loginMsg').textContent=e.message||'تعذر تشغيل لوحة التحكم';}}
 function showLogin(){$('login').style.display='block';$('app').style.display='none'}
 function showApp(session){$('login').style.display='none';$('app').style.display='block';$('who').textContent=session.user.email||'';loadProfiles()}
-async function login(){
-  $('loginMsg').textContent='';
-  const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
-  if(error){$('loginMsg').textContent=error.message;return}
-  showApp(data.session);
-}
+async function login(){$('loginMsg').textContent='جاري تسجيل الدخول...';$('loginBtn').disabled=true;try{const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)throw error;if(!data.session)throw Error('تمت المصادقة لكن لم يتم إنشاء جلسة.');$('loginMsg').textContent='';showApp(data.session);}catch(e){$('loginMsg').textContent=e.message||'فشل تسجيل الدخول';}finally{$('loginBtn').disabled=false;}}
 async function logout(){await sb.auth.signOut();showLogin()}
 async function call(body){
   const {data:{session}}=await sb.auth.getSession();
