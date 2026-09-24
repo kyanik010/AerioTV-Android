@@ -46,7 +46,10 @@ import java.util.Locale
 private enum class ActivationState { CHECKING, NOT_REGISTERED, ACTIVE, SUSPENDED, EXPIRED, ERROR }
 
 @Composable
-fun ActivationGate(content: @Composable () -> Unit) {
+fun ActivationGate(
+    configStore: ActivationConfigStore,
+    content: @Composable () -> Unit,
+) {
     val context = LocalContext.current
     val activationId = remember { readActivationId(context) }
     var state by remember { mutableStateOf(ActivationState.CHECKING) }
@@ -61,7 +64,10 @@ fun ActivationGate(content: @Composable () -> Unit) {
         }
         result.onSuccess { response ->
             state = when {
-                response.activated -> ActivationState.ACTIVE
+                response.activated -> {
+                    response.config?.let(configStore::set)
+                    ActivationState.ACTIVE
+                }
                 response.status == "expired" -> ActivationState.EXPIRED
                 response.status == "suspended" -> ActivationState.SUSPENDED
                 else -> ActivationState.NOT_REGISTERED
@@ -160,6 +166,7 @@ private fun ActivationScreen(
 private data class ActivationResponse(
     val activated: Boolean,
     val status: String?,
+    val config: ManagedActivationConfig?,
 )
 
 private fun requestActivation(activationId: String): ActivationResponse {
@@ -183,6 +190,28 @@ private fun requestActivation(activationId: String): ActivationResponse {
         return ActivationResponse(
             activated = json.optBoolean("activated", false),
             status = json.optString("status").takeIf { it.isNotBlank() },
+            config = json.optJSONObject("config")?.let { config ->
+                val video = config.optJSONObject("video")?.let {
+                    ManagedVideoConfig(
+                        serverUrl = it.optString("server_url"),
+                        username = it.optString("username"),
+                        password = it.optString("password"),
+                    )
+                }
+                val audio = config.optJSONObject("audio")?.let {
+                    ManagedAudioConfig(
+                        m3uUrl = it.optString("m3u_url").takeIf(String::isNotBlank),
+                        serverUrl = it.optString("server_url").takeIf(String::isNotBlank),
+                        username = it.optString("username").takeIf(String::isNotBlank),
+                        password = it.optString("password").takeIf(String::isNotBlank),
+                    )
+                }
+                ManagedActivationConfig(
+                    expiresAt = json.optString("expires_at").takeIf(String::isNotBlank),
+                    video = video,
+                    audio = audio,
+                )
+            },
         )
     } finally {
         connection.disconnect()
@@ -215,7 +244,7 @@ private fun ByteArray.toMac(): String =
 
 private fun macFromStableId(value: String): String {
     val digest = java.security.MessageDigest.getInstance("SHA-256")
-        .digest(value.toByteArray(Charsets.UTF_8))
+        .digest("aeriotv-android:$value".toByteArray(Charsets.UTF_8))
     val bytes = digest.copyOf(6)
     bytes[0] = (bytes[0].toInt() and 0xFC or 0x02).toByte()
     return bytes.toMac()
