@@ -127,7 +127,7 @@ async function configureDevice(id){
   const body={
    action:'configure_device',
    device_id:id,
-   status:$('st-'+id).value,
+   status:'active',
    expires_at:ex?new Date(ex).toISOString():null,
    video:{
     server_url:$('vhost-'+id).value.trim(),
