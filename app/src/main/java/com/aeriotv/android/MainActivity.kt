@@ -12,6 +12,8 @@ import android.util.Rational
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import android.content.Context
+import android.content.res.Configuration
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.enableEdgeToEdge
@@ -34,6 +36,7 @@ import com.aeriotv.android.core.tv.TvActionMenuDialog
 import com.aeriotv.android.core.tv.TvMenuAction
 import com.aeriotv.android.core.tv.rememberTvMenuGuard
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.LayoutDirection
 import com.aeriotv.android.core.cast.AerioCastReceiverController
 import com.aeriotv.android.core.pip.PipState
 import com.aeriotv.android.core.playback.AerioExoPlayerHolder
@@ -57,7 +60,14 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity() {{
+    override fun attachBaseContext(newBase: Context) {
+        val language = LanguageManager.get(newBase)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(if (language == AppLanguage.ARABIC) java.util.Locale("ar") else java.util.Locale.ENGLISH)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
 
     @Inject lateinit var appPreferences: AppPreferences
     @Inject lateinit var miniPlayerSession: MiniPlayerSession
@@ -1039,6 +1049,12 @@ class MainActivity : ComponentActivity() {
         // via a top-level effect, navigates, then clears it.
         if (!castLaunch) captureDeepLinkFrom(intent)
         setContent {
+            val appLanguage = LanguageManager.get(this@MainActivity)
+            CompositionLocalProvider(
+                LocalAppLanguage provides appLanguage,
+                androidx.compose.ui.platform.LocalLayoutDirection provides
+                    if (appLanguage == AppLanguage.ARABIC) LayoutDirection.Rtl else LayoutDirection.Ltr,
+            ) {
             val theme by appPreferences.selectedTheme.collectAsState(initial = AppTheme.Aerio)
             // DEFAULT MUST be Dark: the initial (pre-first-emission) value AND
             // the persisted-absence value both resolve to Dark, so an existing
@@ -1172,6 +1188,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+            }
+        }
+    }
     private companion object {
         const val TAG = "MainActivity"
 
