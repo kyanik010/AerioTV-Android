@@ -88,6 +88,8 @@ function toLocal(x){
 }
 function renderDevice(d){
  const status=d.status||'suspended';
+ const v=d.video_config||{};
+ const a=d.audio_config||{};
  return '<div class="device">'+
  '<div><span class="badge">الجهاز</span> <b>'+esc(d.mac_address)+'</b></div>'+
  '<div class="muted" style="margin-top:6px">Device ID: '+esc(d.id)+'</div>'+
@@ -98,13 +100,13 @@ function renderDevice(d){
  '</div>'+
  '<div class="subbox"><h3>اشتراك الفيديو — Xtream</h3>'+
  '<p class="muted">هذه البيانات تخص هذا الجهاز فقط.</p>'+
- '<input id="vhost-'+d.id+'" placeholder="Host / Server URL">'+
- '<input id="vuser-'+d.id+'" placeholder="Username">'+
- '<input id="vpass-'+d.id+'" type="password" placeholder="Password">'+
+ '<input id="vhost-'+d.id+'" placeholder="Host / Server URL" value="'+esc(v.server_url)+'">'+
+ '<input id="vuser-'+d.id+'" placeholder="Username" value="'+esc(v.username)+'">'+
+ '<input id="vpass-'+d.id+'" type="password" placeholder="Password" value="'+esc(v.password)+'">'+
  '</div>'+
  '<div class="subbox"><h3>اشتراك الصوت — M3U</h3>'+
  '<p class="muted">هذا الرابط سيُربط بهذا الجهاز مباشرة.</p>'+
- '<input id="am3u-'+d.id+'" placeholder="رابط M3U">'+
+ '<input id="am3u-'+d.id+'" placeholder="رابط M3U" value="'+esc(a.m3u_url)+'">'+
  '</div>'+
  '<button onclick="configureDevice(\''+d.id+'\')">حفظ وربط الاشتراكات بهذا الجهاز</button>'+
  '</div>';
