@@ -7,15 +7,11 @@ import com.aeriotv.android.feature.playlist.SortMode
 
 /**
  * E-1 stage 2 (perf campaign 2026-08-19): the ONE filter+sort pipeline behind
- * the Guide grid and the channel List, extracted from their previously
- * duplicated `derivedStateOf` bodies so it can run OFF the main thread via
- * `produceState { withContext(Dispatchers.Default) { ... } }` at both call
- * sites.
+ * the Guide grid and the channel List. It is invoked from produceState on
+ * Dispatchers.Default at both call sites.
  *
- * The hot path is intentionally allocation-light: expensive lowercase name
- * keys are only computed for name sorting (or as a deterministic tie-breaker
- * where they are actually needed), rather than for every channel on every
- * group/tab re-entry.
+ * The hot path is allocation-light: lowercase name keys are lazy and are only
+ * materialized when name ordering is actually required.
  */
 internal fun computeDisplayChannels(
     channels: List<M3UChannel>,
@@ -32,8 +28,8 @@ internal fun computeDisplayChannels(
     "displayChannels",
     listOf(
         GuideMemo.Ref(channels), selectedGroup, searchQuery, sortMode,
-        GuideMemo.Ref(allGroupNames), groupSortMode, hiddenGroups, favoriteIds, GuideMemo.Ref(collections),
-        recentIds,
+        GuideMemo.Ref(allGroupNames), groupSortMode, hiddenGroups, favoriteIds,
+        GuideMemo.Ref(collections), recentIds,
     ),
 ) {
     computeDisplayChannelsUncached(
@@ -99,7 +95,6 @@ private fun computeDisplayChannelsUncached(
                 DisplaySortKey(
                     channel = ch,
                     rank = if (clusterByGroup) groupRankIndex[ch.groupTitle] ?: Int.MAX_VALUE else 0,
-                    nameLower = ch.name.lowercase(),
                     number = ch.channelNumber?.toDoubleOrNull() ?: Double.MAX_VALUE,
                     favorite = false,
                 )
@@ -113,12 +108,11 @@ private fun computeDisplayChannelsUncached(
                 DisplaySortKey(
                     channel = ch,
                     rank = if (clusterByGroup) groupRankIndex[ch.groupTitle] ?: Int.MAX_VALUE else 0,
-                    // Only this mode needs the favorite membership during sort.
                     favorite = ch.id in favoriteIds,
                     number = ch.channelNumber?.toDoubleOrNull() ?: Double.MAX_VALUE,
                 )
             }
-            .sortedWith(compareBy({ it.rank }, { !it.favorite }, { it.number }, { it.nameLowerForTie }))
+            .sortedWith(compareBy({ it.rank }, { !it.favorite }, { it.number }, { it.nameLower }))
             .map { it.channel }
             .toList()
 
@@ -131,24 +125,18 @@ private fun computeDisplayChannelsUncached(
                     favorite = false,
                 )
             }
-            .sortedWith(compareBy({ it.rank }, { it.number }, { it.nameLowerForTie }))
+            .sortedWith(compareBy({ it.rank }, { it.number }, { it.nameLower }))
             .map { it.channel }
             .toList()
     }
 }
 
-/**
- * Sort key deliberately does not lowercase the channel name eagerly.
- * ByNumber is the common/default mode, so eagerly allocating one lowercase
- * String for every channel was unnecessary work on every cold composition.
- */
+/** Lowercase allocation is lazy; ByNumber still gets a deterministic name tie-break. */
 private class DisplaySortKey(
     val channel: M3UChannel,
     val rank: Int,
     val number: Double,
     val favorite: Boolean,
-    private val originalName: String = channel.name,
-    val nameLower: String = originalName.lowercase(),
 ) {
-    val nameLowerForTie: String get() = nameLower
+    val nameLower: String by lazy(LazyThreadSafetyMode.NONE) { channel.name.lowercase() }
 }
