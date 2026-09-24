@@ -533,7 +533,9 @@ private fun SettingsTvRail(
         buildList {
             add(Triple(SettingsRoute.Playlists as SettingsRoute, "Playlists", activePlaylistName))
             sections.forEach { group ->
-                group.sections.forEach { section ->
+                group.sections.filterNot {
+                    it == SettingsSection.Developer || it == SettingsSection.About
+                }.forEach { section ->
                     add(
                         Triple(
                             SettingsRoute.Section(section),
