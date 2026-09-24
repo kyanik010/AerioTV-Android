@@ -314,11 +314,8 @@ fun ChannelListScreen(
 
     // E-1 stage 2 (perf campaign): shared off-main pipeline; see
     // computeDisplayChannels and the twin call site in GuideScreen.
-    val filtered by androidx.compose.runtime.produceState(
-        initialValue = com.aeriotv.android.feature.livetv.computeDisplayChannels(
-            state.channels, state.selectedGroup, state.searchQuery, state.sortMode,
-            allGroupsRaw, groupSortMode, effectiveHidden, favoriteIds, collections, recentChannelIds,
-        ),
+    val filtered by androidx.compose.runtime.produceState<List<M3UChannel>?>(
+        initialValue = null,
         state.channels, state.selectedGroup, state.searchQuery, state.sortMode,
         allGroupsRaw, groupSortMode, effectiveHidden, favoriteIds, collections, recentChannelIds,
     ) {
@@ -329,6 +326,7 @@ fun ChannelListScreen(
             )
         }
     }
+    val filteredChannels = filtered ?: emptyList()
 
     // #45: the Add-to-Collection picker + chained New Collection name dialog,
     // opened from a channel row's long-press menu. Dialogs render in their own
