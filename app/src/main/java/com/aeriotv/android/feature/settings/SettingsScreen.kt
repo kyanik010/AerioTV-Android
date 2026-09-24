@@ -71,6 +71,7 @@ import com.aeriotv.android.core.tv.TvQrLinkDialog
 import com.aeriotv.android.feature.playlist.PlaylistViewModel
 import com.aeriotv.android.ui.adaptive.adaptiveFormWidth
 import com.aeriotv.android.ui.settings.SettingsNavRow
+import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.feature.whatsnew.WhatsNewSheetOnDemand
 import com.aeriotv.android.ui.adaptive.LocalTabBarBottomInset
 import com.aeriotv.android.ui.settings.rememberIsTvDevice
@@ -272,7 +273,7 @@ fun SettingsScreen(
                     key = { it.key },
                 ) { group ->
                     SettingsSectionGroup(
-                        header = group.header,
+                        header = if (LocalAppLanguage.current == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) when (group.header) { "App" -> "التطبيق"; "Device" -> "الجهاز"; else -> group.header } else group.header,
                         rows = group.sections,
                         onClick = onSectionClick,
                         footer = group.footer,
@@ -600,8 +601,8 @@ private fun SectionNavRow(
     // border+scale+wash focus treatment as every subpage (the old
     // groupRowFocus was noticeably weaker on TV).
     SettingsNavRow(
-        title = section.title,
-        subtitle = settingsSectionSubtitle(section, syncEnabled),
+        title = section.localizedTitle(LocalAppLanguage.current),
+        subtitle = settingsSectionSubtitle(section, syncEnabled, LocalAppLanguage.current),
         icon = section.icon,
         value = value,
         onClick = onClick,
