@@ -333,7 +333,6 @@ private fun ActivationScreen(
                     )
                 }
             }
-            }
         }
     }
 }
