@@ -59,27 +59,10 @@ import kotlinx.coroutines.delay
 fun SplashGate(
     content: @Composable () -> Unit,
 ) {
-    val settingsVm: SettingsViewModel = hiltViewModel()
-    val skipLoading by settingsVm.skipLoadingScreen.collectAsStateWithLifecycle(initialValue = false)
-
-    var finished by remember { mutableStateOf(false) }
-
-    LaunchedEffect(skipLoading) {
-        if (skipLoading) {
-            finished = true
-            return@LaunchedEffect
-        }
-        // iOS SplashView timing: dismiss at 2.8s (0.4 in + hold + 0.4 out).
-        delay(2_800L)
-        finished = true
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        content()
-        if (!finished && !skipLoading) {
-            SplashContent()
-        }
-    }
+    // ActivationGate is the true first-run gate. Keeping the legacy splash
+    // overlay here would hide the MAC/activation screen for 2.8 seconds and
+    // make the old AerioTV UI appear to flash during cold launch.
+    content()
 }
 
 @Composable
