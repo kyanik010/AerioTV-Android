@@ -86,7 +86,7 @@ fun ActivationGate(content: @Composable () -> Unit) {
         activationId = activationId,
         state = state,
         errorText = errorText,
-        onRetry = { kotlinx.coroutines.GlobalScope.launch(Dispatchers.Main) { check() } },
+        onRetry = { scope.launch { check() } },
     )
 }
 
