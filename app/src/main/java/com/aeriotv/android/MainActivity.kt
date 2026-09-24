@@ -1188,9 +1188,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-            }
-        }
-    }
     private companion object {
         const val TAG = "MainActivity"
 
