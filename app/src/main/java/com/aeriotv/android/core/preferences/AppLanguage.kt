@@ -2,7 +2,6 @@ package com.aeriotv.android.core.preferences
 
 import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.aeriotv.android.feature.main.AppTab
 
 enum class AppLanguage {
     ENGLISH,
@@ -29,15 +28,3 @@ object LanguageManager {
 
 val LocalAppLanguage = staticCompositionLocalOf { AppLanguage.ENGLISH }
 
-fun AppTab.localizedLabel(language: AppLanguage): String =
-    if (language == AppLanguage.ENGLISH) label else when (this) {
-        AppTab.LiveTV -> "التلفزيون المباشر"
-        AppTab.Favorites -> "المفضلة"
-        AppTab.DVR -> "التسجيلات"
-        AppTab.OnDemand -> "عند الطلب"
-        AppTab.Movies -> "الأفلام"
-        AppTab.TVShows -> "المسلسلات"
-        AppTab.Audio -> "الصوت"
-        AppTab.Settings -> "الإعدادات"
-        AppTab.Search -> "البحث"
-    }
