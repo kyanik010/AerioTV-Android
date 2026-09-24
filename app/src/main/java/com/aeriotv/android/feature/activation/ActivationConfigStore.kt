@@ -13,7 +13,10 @@ data class ManagedVideoConfig(
 )
 
 data class ManagedAudioConfig(
-    val m3uUrl: String,
+    val m3uUrl: String? = null,
+    val serverUrl: String? = null,
+    val username: String? = null,
+    val password: String? = null,
 )
 
 data class ManagedActivationConfig(
