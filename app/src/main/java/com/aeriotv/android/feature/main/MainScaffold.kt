@@ -97,7 +97,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.aeriotv.android.core.data.M3UChannel
 import com.aeriotv.android.core.preferences.LocalAppLanguage
-import com.aeriotv.android.core.preferences.localizedLabel
 import com.aeriotv.android.core.data.guideMatchKey
 import com.aeriotv.android.core.playback.AerioExoPlayerHolder
 import com.aeriotv.android.feature.dvr.DvrTabContent
