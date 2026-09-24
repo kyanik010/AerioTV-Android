@@ -1103,6 +1103,7 @@ class MainActivity : ComponentActivity() {
                         // chrome and the user only sees the SurfaceView
                         // punch-through (video) -- chrome IS in state
                         // but never reaches the pixels.
+                        ActivationGate {
                         Box(modifier = Modifier.fillMaxSize()) {
                             // PersistentExoWindow is declared FIRST so it
                             // sits at the bottom of the z-stack. Fullscreen
