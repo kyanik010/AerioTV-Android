@@ -6,85 +6,120 @@
 <title>AerioTV Control</title>
 <style>
 body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#0b1020;color:#eef2ff;margin:0}
-.wrap{max-width:1050px;margin:40px auto;padding:20px}
-.card{background:#151c31;border:1px solid #27314f;border-radius:18px;padding:22px;margin-bottom:18px}
-h1{margin-top:0}input,select,button{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #34405f;background:#0d1426;color:#fff;margin:6px 0}
-button{cursor:pointer;background:#315efb;border:0;font-weight:700}button.secondary{background:#27314f}
+.wrap{max-width:1050px;margin:30px auto;padding:20px}.card{background:#151c31;border:1px solid #27314f;border-radius:18px;padding:22px;margin-bottom:18px}
+h1,h2{margin-top:0}input,select,button{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #34405f;background:#0d1426;color:#fff;margin:6px 0}
+button{cursor:pointer;background:#315efb;border:0;font-weight:700}button.secondary{background:#27314f}button.danger{background:#7b3340}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
-.device{padding:16px;border:1px solid #2c3757;border-radius:14px;margin-top:12px}.muted{color:#aab4cf;font-size:13px}.error{color:#ff9b9b}
+.device,.profile{padding:16px;border:1px solid #2c3757;border-radius:14px;margin-top:12px}.muted{color:#aab4cf;font-size:13px}.error{color:#ff9b9b}.ok{color:#8de0aa}
+.section{margin-top:18px;padding-top:18px;border-top:1px solid #27314f}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#27314f;font-size:12px}
 @media(max-width:700px){.grid{grid-template-columns:1fr}.row{display:block}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <div class="card" id="login">
-<h1>AerioTV Control</h1>
-<p class="muted">لوحة إدارة الأجهزة والاشتراكات</p>
+<h1>AerioTV Control</h1><p class="muted">لوحة إدارة الأجهزة والاشتراكات</p>
 <input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
 <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
-<button id="loginBtn" type="button">تسجيل الدخول</button>
-<div id="loginMsg" class="error">اللوحة جاهزة.</div>
+<button id="loginBtn" type="button">تسجيل الدخول</button><div id="loginMsg" class="error">اللوحة جاهزة.</div>
 </div>
+
 <div class="card" id="app" style="display:none">
-<div class="row">
-<div><h1>إدارة الأجهزة</h1><div id="who" class="muted"></div></div>
-<button class="secondary" onclick="logout()">تسجيل الخروج</button>
-</div>
+<div class="row"><div><h1>إدارة الأجهزة</h1><div id="who" class="muted"></div></div><button class="secondary" onclick="logout()">تسجيل الخروج</button></div>
+
+<div class="section">
+<h2>البحث عن جهاز</h2>
 <input id="q" placeholder="الصق MAC Address أو Device ID هنا" autocomplete="off">
 <button onclick="searchDevice()">بحث عن الجهاز</button>
 <div id="results"></div>
 </div>
+
+<div class="section">
+<h2>اشتراكات الفيديو والصوت</h2>
+<p class="muted">الفيديو = Xtream Host + Username + Password. الصوت = رابط M3U فقط.</p>
+<div class="grid">
+<div class="profile">
+<h3>إضافة / تعديل اشتراك فيديو — Xtream</h3>
+<input id="vName" placeholder="اسم الاشتراك">
+<input id="vHost" placeholder="Host / Server URL">
+<input id="vUser" placeholder="Username">
+<input id="vPass" type="password" placeholder="Password">
+<button onclick="saveVideoProfile()">حفظ اشتراك الفيديو</button>
 </div>
+<div class="profile">
+<h3>إضافة / تعديل اشتراك صوت — M3U</h3>
+<input id="aName" placeholder="اسم الاشتراك">
+<input id="aM3u" placeholder="رابط M3U">
+<button onclick="saveAudioProfile()">حفظ اشتراك الصوت</button>
+</div>
+</div>
+<div id="profileList"></div>
+</div>
+</div>
+</div>
+
 <script>
 const URL='https://quaftlmuobshbnlhctmf.supabase.co';
 const KEY='sb_publishable_6mdnO-ezptIZzRKNfEbzaA_e9B-ulL5';
 const API=URL+'/functions/v1/admin-control';
-let profiles=null;
-let session=null;
+let profiles={video:[],audio:[]},session=null;
 const $=id=>document.getElementById(id);
-window.onerror=function(message){$('loginMsg').textContent='خطأ في الصفحة: '+message};
-async function boot(){try{const raw=localStorage.getItem('aeriotv_admin_session');if(raw){session=JSON.parse(raw);if(session?.access_token){showApp(session);return}}showLogin();}catch(e){localStorage.removeItem('aeriotv_admin_session');session=null;showLogin();$('loginMsg').textContent=e.message||'تعذر تشغيل لوحة التحكم';}}
+window.onerror=m=>$('loginMsg').textContent='خطأ في الصفحة: '+m;
+
+async function boot(){try{const raw=localStorage.getItem('aeriotv_admin_session');if(raw){session=JSON.parse(raw);if(session?.access_token){showApp();return}}showLogin()}catch(e){localStorage.removeItem('aeriotv_admin_session');showLogin()}}
 function showLogin(){$('login').style.display='block';$('app').style.display='none'}
-function showApp(session){$('login').style.display='none';$('app').style.display='block';$('who').textContent=session.user.email||'';loadProfiles()}
-async function login(){$('loginMsg').textContent='جاري الاتصال بـ Supabase...';$('loginBtn').disabled=true;try{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)throw Error('أدخل البريد الإلكتروني وكلمة المرور.');const r=await fetch(URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({email,password})});const j=await r.json();if(!r.ok)throw Error(j.error_description||j.msg||j.message||'فشل تسجيل الدخول');if(!j.access_token)throw Error('لم يتم إنشاء جلسة تسجيل الدخول.');session={access_token:j.access_token,user:j.user||{email}};localStorage.setItem('aeriotv_admin_session',JSON.stringify(session));$('loginMsg').textContent='';showApp(session);}catch(e){$('loginMsg').textContent=e.message||'فشل تسجيل الدخول';}finally{$('loginBtn').disabled=false;}}
-async function logout(){localStorage.removeItem('aeriotv_admin_session');session=null;profiles=null;showLogin()}
-async function call(body){
-  if(!session?.access_token)throw Error('انتهت الجلسة');
-  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});
-  const j=await r.json();
-  if(!r.ok)throw Error(j.error||'حدث خطأ');
-  return j;
+function showApp(){$('login').style.display='none';$('app').style.display='block';$('who').textContent=session?.user?.email||'';loadProfiles()}
+async function login(){
+ $('loginMsg').textContent='جاري الاتصال بـ Supabase...';$('loginBtn').disabled=true;
+ try{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)throw Error('أدخل البريد الإلكتروني وكلمة المرور.');
+ const r=await fetch(URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({email,password})});
+ const j=await r.json();if(!r.ok)throw Error(j.error_description||j.msg||j.message||'فشل تسجيل الدخول');if(!j.access_token)throw Error('لم يتم إنشاء جلسة تسجيل الدخول.');
+ session={access_token:j.access_token,user:j.user||{email}};localStorage.setItem('aeriotv_admin_session',JSON.stringify(session));$('loginMsg').textContent='';showApp()
+ }catch(e){$('loginMsg').textContent=e.message||'فشل تسجيل الدخول'}finally{$('loginBtn').disabled=false}
 }
-async function loadProfiles(){try{profiles=await call({action:'profiles'})}catch(e){profiles=null}}
-async function searchDevice(){
-  $('results').innerHTML='<div class="muted">جاري البحث...</div>';
-  try{
-    const j=await call({action:'search',query:$('q').value});
-    if(!j.devices.length){$('results').innerHTML='<div class="muted">لم يتم العثور على جهاز.</div>';return}
-    $('results').innerHTML=j.devices.map(renderDevice).join('');
-  }catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+function logout(){localStorage.removeItem('aeriotv_admin_session');session=null;profiles={video:[],audio:[]};showLogin()}
+async function call(body){
+ if(!session?.access_token)throw Error('انتهت الجلسة');
+ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});
+ const j=await r.json();if(!r.ok)throw Error(j.error||'حدث خطأ');return j
+}
+async function loadProfiles(){
+ try{profiles=await call({action:'profiles'});renderProfiles()}catch(e){$('profileList').innerHTML='<div class="error">تعذر تحميل الاشتراكات: '+esc(e.message)+'</div>'}
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function options(list,selected){return '<option value="">غير محدد</option>'+list.map(x=>'<option value="'+x.id+'" '+(x.id===selected?'selected':'')+'>'+esc(x.name)+'</option>').join('')}
 function renderDevice(d){
-  return '<div class="device"><b>'+esc(d.mac_address)+'</b><div class="muted">ID: '+esc(d.id)+'</div><div class="grid">'+
-  '<label>الحالة<select id="st-'+d.id+'"><option value="active" '+(d.status==='active'?'selected':'')+'>فعال</option><option value="suspended" '+(d.status==='suspended'?'selected':'')+'>موقوف</option><option value="expired" '+(d.status==='expired'?'selected':'')+'>منتهي</option></select></label>'+
-  '<label>تاريخ الانتهاء<input id="ex-'+d.id+'" type="datetime-local" value="'+toLocal(d.expires_at)+'"></label>'+
-  '<label>اشتراك الفيديو<select id="v-'+d.id+'">'+options(profiles?.video||[],d.video_profile_id)+'</select></label>'+
-  '<label>اشتراك الصوت<select id="a-'+d.id+'">'+options(profiles?.audio||[],d.audio_profile_id)+'</select></label></div>'+
-  '<div class="muted">آخر اتصال: '+esc(d.last_seen_at||'—')+'</div><button onclick="saveDevice(\''+d.id+'\')">حفظ التعديلات</button></div>'
+ return '<div class="device"><b>'+esc(d.mac_address)+'</b><div class="muted">ID: '+esc(d.id)+'</div><div class="grid">'+
+ '<label>الحالة<select id="st-'+d.id+'"><option value="active" '+(d.status==='active'?'selected':'')+'>فعال</option><option value="suspended" '+(d.status==='suspended'?'selected':'')+'>موقوف</option><option value="expired" '+(d.status==='expired'?'selected':'')+'>منتهي</option></select></label>'+
+ '<label>تاريخ الانتهاء<input id="ex-'+d.id+'" type="datetime-local" value="'+toLocal(d.expires_at)+'"></label>'+
+ '<label>اشتراك الفيديو (Xtream)<select id="v-'+d.id+'">'+options(profiles.video,d.video_profile_id)+'</select></label>'+
+ '<label>اشتراك الصوت (M3U)<select id="a-'+d.id+'">'+options(profiles.audio,d.audio_profile_id)+'</select></label></div>'+
+ '<div class="muted">آخر اتصال: '+esc(d.last_seen_at||'—')+'</div><button onclick="saveDevice(\''+d.id+'\')">حفظ التعديلات</button></div>'
+}
+async function searchDevice(){
+ $('results').innerHTML='<div class="muted">جاري البحث...</div>';
+ try{const j=await call({action:'search',query:$('q').value});if(!j.devices.length){$('results').innerHTML='<div class="muted">لم يتم العثور على جهاز.</div>';return}$('results').innerHTML=j.devices.map(renderDevice).join('')}
+ catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
 }
 function toLocal(x){if(!x)return '';const d=new Date(x),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
 async function saveDevice(id){
-  try{
-    const ex=$('ex-'+id).value;
-    await call({action:'update',id,status:$('st-'+id).value,expires_at:ex?new Date(ex).toISOString():null,video_profile_id:$('v-'+id).value||null,audio_profile_id:$('a-'+id).value||null});
-    alert('تم حفظ التعديلات');
-    await searchDevice();
-  }catch(e){alert(e.message)}
+ try{const ex=$('ex-'+id).value;await call({action:'update',id,status:$('st-'+id).value,expires_at:ex?new Date(ex).toISOString():null,video_profile_id:$('v-'+id).value||null,audio_profile_id:$('a-'+id).value||null});alert('تم حفظ التعديلات');await searchDevice()}
+ catch(e){alert(e.message)}
 }
-$('loginBtn').addEventListener('click',login);
-boot();
+async function saveVideoProfile(){
+ try{await call({action:'save_video_profile',name:$('vName').value,server_url:$('vHost').value,username:$('vUser').value,password:$('vPass').value});$('vName').value=$('vHost').value=$('vUser').value=$('vPass').value='';await loadProfiles();alert('تم حفظ اشتراك الفيديو (Xtream)')}
+ catch(e){alert(e.message)}
+}
+async function saveAudioProfile(){
+ try{await call({action:'save_audio_profile',name:$('aName').value,m3u_url:$('aM3u').value});$('aName').value=$('aM3u').value='';await loadProfiles();alert('تم حفظ اشتراك الصوت (M3U)')}
+ catch(e){alert(e.message)}
+}
+function renderProfiles(){
+ const v=profiles.video.map(x=>'<div class="profile"><span class="pill">Xtream</span> <b>'+esc(x.name)+'</b><div class="muted">Host: '+esc(x.server_url)+' | User: '+esc(x.username)+'</div></div>').join('');
+ const a=profiles.audio.map(x=>'<div class="profile"><span class="pill">M3U</span> <b>'+esc(x.name)+'</b><div class="muted">الرابط محفوظ في النظام ولا يُعرض هنا.</div></div>').join('');
+ $('profileList').innerHTML='<h3>الاشتراكات المحفوظة</h3>'+v+a
+}
+$('loginBtn').addEventListener('click',login);boot();
 </script>
 </body>
 </html>
