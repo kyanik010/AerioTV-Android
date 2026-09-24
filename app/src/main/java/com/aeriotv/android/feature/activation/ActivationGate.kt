@@ -6,7 +6,12 @@ import android.content.Context
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,8 +21,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,6 +46,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.aeriotv.android.BuildConfig
 import com.aeriotv.android.core.data.SourceType
@@ -186,195 +198,192 @@ private fun ActivationScreen(
     onRetry: () -> Unit,
 ) {
     val context = LocalContext.current
+    var logo by remember { mutableStateOf<Bitmap?>(null) }
+    var qrCode by remember { mutableStateOf<Bitmap?>(null) }
 
-    // These assets live in the separate mmm123 repository so the production
-    // source tree stays clean. Coil loads them over HTTPS and falls back to the
-    // existing built-in Aerio logo if the branding repository is temporarily
-    // unavailable.
-    val logoUrl = "https://raw.githubusercontent.com/kyanik010/mmm123/main/%D9%A2%D9%A0%D9%A2%D9%A6%D9%A0%D9%A9%D9%A2%D9%A4_%D9%A2%D9%A2%D9%A5%D9%A0%D9%A0%D9%A3.jpg"
-    val qrUrl = "https://raw.githubusercontent.com/kyanik010/mmm123/main/chrome_qrcode_1790272750958.png"
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.coroutineScope {
+            launch {
+                logo = loadActivationAsset(
+                    context,
+                    "https://raw.githubusercontent.com/kyanik010/mmm123/main/%D9%A2%D9%A0%D9%A2%D9%A6%D9%A0%D9%A9%D9%A2%D9%A4_%D9%A2%D9%A2%D9%A5%D9%A0%D9%A0%D9%A3.jpg",
+                    "eagle_x_logo.jpg",
+                )
+            }
+            launch {
+                qrCode = loadActivationAsset(
+                    context,
+                    "https://raw.githubusercontent.com/kyanik010/mmm123/main/chrome_qrcode_1790272750958.png",
+                    "eagle_x_support_qr.png",
+                )
+            }
+        }
+    }
 
     val statusText = when (state) {
-        ActivationState.CHECKING -> "جاري التحقق من الجهاز"
-        ActivationState.ACTIVATING -> "جاري تجهيز الخدمة"
-        ActivationState.NOT_REGISTERED -> "هذا الجهاز غير مفعل"
+        ActivationState.CHECKING -> "جاري التحقق من الجهاز..."
+        ActivationState.ACTIVATING -> "جاري تجهيز الاشتراك..."
+        ActivationState.NOT_REGISTERED -> "هذا الجهاز غير مفعّل"
         ActivationState.SUSPENDED -> "هذا الجهاز موقوف"
-        ActivationState.EXPIRED -> "انتهى التفعيل"
+        ActivationState.EXPIRED -> "انتهى تفعيل هذا الجهاز"
         ActivationState.ERROR -> errorText ?: "تعذر التحقق من الجهاز"
         ActivationState.ACTIVE -> ""
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF071018),
-                        Color(0xFF0B151F),
-                        Color(0xFF05090D),
-                    ),
-                ),
-            ),
-        contentAlignment = Alignment.Center,
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalLayoutDirection provides LayoutDirection.Rtl,
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .widthIn(max = 560.dp)
+                .fillMaxSize()
+                .background(Color(0xFF07090D))
                 .padding(horizontal = 24.dp, vertical = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .size(108.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.06f))
-                    .border(
-                        width = 1.dp,
-                        color = Color.White.copy(alpha = 0.10f),
-                        shape = RoundedCornerShape(24.dp),
-                    ),
-                contentAlignment = Alignment.Center,
+            Column(
+                modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                coil.compose.AsyncImage(
-                    model = logoUrl,
-                    contentDescription = "شعار التطبيق",
-                    placeholder = androidx.compose.ui.res.painterResource(com.aeriotv.android.R.drawable.aerio_logo),
-                    error = androidx.compose.ui.res.painterResource(com.aeriotv.android.R.drawable.aerio_logo),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(10.dp)
-                        .clip(RoundedCornerShape(18.dp)),
+                if (logo != null) {
+                    Image(
+                        bitmap = logo!!.asImageBitmap(),
+                        contentDescription = "Eagle X",
+                        modifier = Modifier.size(96.dp),
+                    )
+                } else {
+                    Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(strokeWidth = 2.dp)
+                    }
+                }
+
+                Text(
+                    text = "Eagle X",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
                 )
-            }
 
-            Text(
-                text = "AerioTV",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-
-            Text(
-                text = "تفعيل الجهاز",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF63D8E8),
-            )
-
-            androidx.compose.material3.Card(
-                colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.055f),
-                ),
-                shape = RoundedCornerShape(22.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(
-                        text = "معرّف الجهاز",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.White.copy(alpha = 0.62f),
-                    )
-                    Text(
-                        text = activationId,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = Color.White,
-                    )
-                    OutlinedButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Device ID", activationId))
-                            Toast.makeText(context, "تم نسخ معرّف الجهاز", Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Text("نسخ المعرّف")
-                    }
-                }
-            }
-
-            androidx.compose.material3.Card(
-                colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = when (state) {
-                        ActivationState.CHECKING, ActivationState.ACTIVATING ->
-                            Color(0xFF63D8E8).copy(alpha = 0.10f)
-                        ActivationState.ACTIVE -> Color(0xFF4CAF50).copy(alpha = 0.10f)
-                        else -> Color(0xFFFFB74D).copy(alpha = 0.10f)
-                    },
-                ),
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                androidx.compose.foundation.layout.Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (state == ActivationState.CHECKING || state == ActivationState.ACTIVATING) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(10.dp))
-                    }
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center,
-                        color = Color.White,
-                    )
-                }
-            }
-
-            if (state != ActivationState.CHECKING && state != ActivationState.ACTIVATING) {
-                androidx.compose.material3.Card(
-                    colors = androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.045f),
-                    ),
-                    shape = RoundedCornerShape(20.dp),
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF11151C)),
+                    border = BorderStroke(1.dp, Color(0xFF252B35)),
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = "للتفعيل أو التواصل",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.White.copy(alpha = 0.70f),
+                            text = "MAC ADDRESS",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8F9AAA),
                         )
-                        coil.compose.AsyncImage(
-                            model = qrUrl,
-                            contentDescription = "باركود التواصل",
-                            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                            modifier = Modifier
-                                .size(150.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White)
-                                .padding(8.dp),
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text(
+                                text = activationId,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                                textAlign = TextAlign.Start,
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("MAC Address", activationId))
+                                    Toast.makeText(context, "تم نسخ العنوان", Toast.LENGTH_SHORT).show()
+                                },
+                            ) {
+                                Text("نسخ")
+                            }
+                        }
+                    }
+                }
+
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+
+                Text(
+                    text = "للتفعيل أو الحصول على اشتراك IPTV، تواصل مع الدعم عبر مسح رمز QR",
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFB8C0CC),
+                    textAlign = TextAlign.Center,
+                )
+
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                ) {
+                    if (qrCode != null) {
+                        Image(
+                            bitmap = qrCode!!.asImageBitmap(),
+                            contentDescription = "Support QR Code",
+                            modifier = Modifier.size(156.dp).padding(8.dp),
                         )
+                    } else {
+                        Box(Modifier.size(156.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
 
                 Button(
                     onClick = onRetry,
-                    modifier = Modifier.widthIn(min = 220.dp),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = state != ActivationState.CHECKING && state != ActivationState.ACTIVATING,
                     shape = RoundedCornerShape(14.dp),
                 ) {
-                    Text(if (state == ActivationState.ERROR) "إعادة المحاولة" else "إعادة التحقق")
+                    Text(
+                        text = if (state == ActivationState.ERROR) "إعادة المحاولة" else "إعادة التحقق",
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         }
     }
+}
+
+private suspend fun loadActivationAsset(
+    context: Context,
+    url: String,
+    cacheName: String,
+): Bitmap? = withContext(Dispatchers.IO) {
+    val cacheFile = java.io.File(context.cacheDir, cacheName)
+    runCatching {
+        if (cacheFile.exists() && cacheFile.length() > 0L) {
+            BitmapFactory.decodeFile(cacheFile.absolutePath)
+        } else null
+    }.getOrNull()?.let { return@withContext it }
+
+    runCatching {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 10_000
+            readTimeout = 15_000
+            requestMethod = "GET"
+            setRequestProperty("Accept", "image/*")
+        }
+        try {
+            if (connection.responseCode !in 200..299) return@runCatching null
+            connection.inputStream.use { input ->
+                cacheFile.outputStream().use { output -> input.copyTo(output) }
+            }
+            BitmapFactory.decodeFile(cacheFile.absolutePath)
+        } finally {
+            connection.disconnect()
+        }
+    }.getOrNull()
 }
 
 private data class ActivationResponse(
