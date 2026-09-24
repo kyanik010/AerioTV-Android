@@ -68,6 +68,11 @@ android {
             "CAST_RECEIVER_APP_ID",
             "\"$castReceiverAppId\"",
         )
+        buildConfigField(
+            "String",
+            "DEVICE_ACTIVATION_URL",
+            "\"https://quaftlmuobshbnlhctmf.supabase.co/functions/v1/device-activation\"",
+        )
     }
 
     if (hasReleaseSigning) {
