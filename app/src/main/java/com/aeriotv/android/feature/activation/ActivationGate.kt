@@ -227,7 +227,7 @@ private fun ActivationScreen(
             Column(
                 modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Image(
                     painter = painterResource(id = logoRes),
@@ -237,9 +237,44 @@ private fun ActivationScreen(
 
                 Text(
                     text = "Eagle X",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = "MAC ADDRESS",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFB8C0CC),
+                        textAlign = TextAlign.Start,
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("MAC Address", activationId))
+                            Toast.makeText(context, "تم نسخ العنوان", Toast.LENGTH_SHORT).show()
+                        },
+                    ) {
+                        Text("نسخ", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                Text(
+                    text = activationId,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
                 )
 
                 Card(
@@ -248,54 +283,29 @@ private fun ActivationScreen(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF11151C)),
                     border = BorderStroke(1.dp, Color(0xFF252B35)),
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "MAC ADDRESS",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF8F9AAA),
+                            text = statusText,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Text(
-                                text = activationId,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White,
-                                textAlign = TextAlign.Start,
-                            )
-                            OutlinedButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("MAC Address", activationId))
-                                    Toast.makeText(context, "تم نسخ العنوان", Toast.LENGTH_SHORT).show()
-                                },
-                            ) {
-                                Text("نسخ")
-                            }
-                        }
                     }
                 }
 
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                )
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "للتفعيل أو الحصول على اشتراك IPTV، تواصل مع الدعم عبر مسح رمز QR",
+                    text = "للتفعيل أو الحصول على اشتراك IPTV\nتواصل مع الدعم عبر مسح رمز QR",
                     modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
                     color = Color(0xFFB8C0CC),
                     textAlign = TextAlign.Center,
                 )
@@ -307,7 +317,7 @@ private fun ActivationScreen(
                     Image(
                         painter = painterResource(id = qrRes),
                         contentDescription = "Support QR Code",
-                        modifier = Modifier.size(156.dp).padding(8.dp),
+                        modifier = Modifier.size(176.dp).padding(8.dp),
                     )
                 }
 
@@ -322,6 +332,7 @@ private fun ActivationScreen(
                         fontWeight = FontWeight.Bold,
                     )
                 }
+            }
             }
         }
     }
