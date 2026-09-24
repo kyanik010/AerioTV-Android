@@ -324,37 +324,6 @@ private fun ActivationScreen(
     }
 }
 
-private suspend fun loadActivationAsset(
-    context: Context,
-    url: String,
-    cacheName: String,
-): Bitmap? = withContext(Dispatchers.IO) {
-    val cacheFile = java.io.File(context.cacheDir, cacheName)
-    runCatching {
-        if (cacheFile.exists() && cacheFile.length() > 0L) {
-            BitmapFactory.decodeFile(cacheFile.absolutePath)
-        } else null
-    }.getOrNull()?.let { return@withContext it }
-
-    runCatching {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 10_000
-            readTimeout = 15_000
-            requestMethod = "GET"
-            setRequestProperty("Accept", "image/*")
-        }
-        try {
-            if (connection.responseCode !in 200..299) return@runCatching null
-            connection.inputStream.use { input ->
-                cacheFile.outputStream().use { output -> input.copyTo(output) }
-            }
-            BitmapFactory.decodeFile(cacheFile.absolutePath)
-        } finally {
-            connection.disconnect()
-        }
-    }.getOrNull()
-}
-
 private data class ActivationResponse(
     val activated: Boolean,
     val status: String?,
