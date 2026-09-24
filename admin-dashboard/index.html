@@ -35,22 +35,20 @@ button{cursor:pointer;background:#315efb;border:0;font-weight:700}button.seconda
 <div id="results"></div>
 </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const URL='https://quaftlmuobshbnlhctmf.supabase.co';
 const KEY='sb_publishable_6mdnO-ezptIZzRKNfEbzaA_e9B-ulL5';
 const API=URL+'/functions/v1/admin-control';
-const sb=supabase.createClient(URL,KEY);
 let profiles=null;
+let session=null;
 const $=id=>document.getElementById(id);
-async function boot(){try{if(typeof supabase==='undefined')throw Error('تعذر تحميل مكتبة تسجيل الدخول. أعد تحميل الصفحة.');const {data:{session},error}=await sb.auth.getSession();if(error)throw error;session?showApp(session):showLogin();}catch(e){showLogin();$('loginMsg').textContent=e.message||'تعذر تشغيل لوحة التحكم';}}
+async function boot(){try{const raw=localStorage.getItem('aeriotv_admin_session');if(raw){session=JSON.parse(raw);if(session?.access_token){showApp(session);return}}showLogin();}catch(e){localStorage.removeItem('aeriotv_admin_session');session=null;showLogin();$('loginMsg').textContent=e.message||'تعذر تشغيل لوحة التحكم';}}
 function showLogin(){$('login').style.display='block';$('app').style.display='none'}
 function showApp(session){$('login').style.display='none';$('app').style.display='block';$('who').textContent=session.user.email||'';loadProfiles()}
-async function login(){$('loginMsg').textContent='جاري تسجيل الدخول...';$('loginBtn').disabled=true;try{const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)throw error;if(!data.session)throw Error('تمت المصادقة لكن لم يتم إنشاء جلسة.');$('loginMsg').textContent='';showApp(data.session);}catch(e){$('loginMsg').textContent=e.message||'فشل تسجيل الدخول';}finally{$('loginBtn').disabled=false;}}
-async function logout(){await sb.auth.signOut();showLogin()}
+async function login(){$('loginMsg').textContent='جاري تسجيل الدخول...';$('loginBtn').disabled=true;try{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)throw Error('أدخل البريد الإلكتروني وكلمة المرور.');const r=await fetch(URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({email,password})});const j=await r.json();if(!r.ok)throw Error(j.error_description||j.msg||j.message||'فشل تسجيل الدخول');if(!j.access_token)throw Error('لم يتم إنشاء جلسة تسجيل الدخول.');session={access_token:j.access_token,user:j.user||{email}};localStorage.setItem('aeriotv_admin_session',JSON.stringify(session));$('loginMsg').textContent='';showApp(session);}catch(e){$('loginMsg').textContent=e.message||'فشل تسجيل الدخول';}finally{$('loginBtn').disabled=false;}}
+async function logout(){localStorage.removeItem('aeriotv_admin_session');session=null;profiles=null;showLogin()}
 async function call(body){
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session)throw Error('انتهت الجلسة');
+  if(!session?.access_token)throw Error('انتهت الجلسة');
   const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});
   const j=await r.json();
   if(!r.ok)throw Error(j.error||'حدث خطأ');
