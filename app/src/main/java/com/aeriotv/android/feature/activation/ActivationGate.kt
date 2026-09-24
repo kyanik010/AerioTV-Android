@@ -98,7 +98,7 @@ fun ActivationGate(
             // assigned Xtream subscription.
             val current = playlistRepository.activePlaylist()
             val currentMatches = current != null &&
-                current.resolvedSourceType() == SourceType.XtreamCodes &&
+                current.sourceType == SourceType.XtreamCodes.name &&
                 current.urlString.trimEnd('/') == video.serverUrl.trimEnd('/') &&
                 current.username.orEmpty() == video.username &&
                 current.password.orEmpty() == video.password
