@@ -28,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.Composable
 import com.aeriotv.android.core.data.SourceType
+import com.aeriotv.android.core.preferences.AppLanguage
 
 /** One destination in the Settings area. */
 sealed interface SettingsRoute {
@@ -124,13 +125,6 @@ fun visibleSettingsSections(
             add(SettingsSection.Sync)
             if (updaterEnabled) add(SettingsSection.AppUpdates)
         },
-    ),
-    SettingsSectionGroupSpec(
-        key = "system",
-        // Header-less closing group (Settings phase 1): Developer and About sit
-        // together at the bottom with nothing to label them.
-        header = "",
-        sections = listOf(SettingsSection.Developer, SettingsSection.About),
     ),
 )
 
