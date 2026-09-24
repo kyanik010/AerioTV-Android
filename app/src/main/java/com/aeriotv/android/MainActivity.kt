@@ -3,6 +3,7 @@ package com.aeriotv.android
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -40,6 +42,9 @@ import com.aeriotv.android.core.cast.AerioCastReceiverController
 import com.aeriotv.android.core.pip.PipState
 import com.aeriotv.android.core.playback.AerioExoPlayerHolder
 import com.aeriotv.android.core.preferences.AppPreferences
+import com.aeriotv.android.core.preferences.AppLanguage
+import com.aeriotv.android.core.preferences.LanguageManager
+import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.core.system.NotificationPermissionGate
 import com.aeriotv.android.feature.miniplayer.MiniPlayerSession
 import com.aeriotv.android.feature.player.ExoWindowState
@@ -1181,6 +1186,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
             }
             }
             }
