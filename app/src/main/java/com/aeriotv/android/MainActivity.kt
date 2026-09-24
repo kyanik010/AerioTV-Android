@@ -45,6 +45,8 @@ import com.aeriotv.android.feature.player.PersistentExoWindow
 import com.aeriotv.android.feature.splash.SplashGate
 import com.aeriotv.android.feature.activation.ActivationConfigStore
 import com.aeriotv.android.feature.activation.ActivationGate
+import com.aeriotv.android.core.data.repository.PlaylistRepository
+import com.aeriotv.android.feature.audio.AudioSourceManager
 import com.aeriotv.android.ui.theme.AerioTVTheme
 import com.aeriotv.android.ui.scale.LocalAppTextScale
 import com.aeriotv.android.ui.scale.ProvideAppTextScale
@@ -67,6 +69,8 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var homeChannelsPublisher: com.aeriotv.android.core.tv.HomeChannelsPublisher
     @Inject lateinit var timeshiftController: com.aeriotv.android.core.timeshift.TimeshiftController
     @Inject lateinit var activationConfigStore: ActivationConfigStore
+    @Inject lateinit var playlistRepository: PlaylistRepository
+    @Inject lateinit var audioSourceManager: AudioSourceManager
 
     /**
      * Most recent deep-link target the activity has received from a
@@ -1105,7 +1109,11 @@ class MainActivity : ComponentActivity() {
                         // chrome and the user only sees the SurfaceView
                         // punch-through (video) -- chrome IS in state
                         // but never reaches the pixels.
-                        ActivationGate(configStore = activationConfigStore) {
+                        ActivationGate(
+                            configStore = activationConfigStore,
+                            playlistRepository = playlistRepository,
+                            audioSourceManager = audioSourceManager,
+                        ) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             // PersistentExoWindow is declared FIRST so it
                             // sits at the bottom of the z-stack. Fullscreen
