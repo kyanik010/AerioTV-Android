@@ -295,8 +295,8 @@ private fun SettingsSidebar(
             }
             items(items = group.sections, key = { "row-${it.name}" }) { section ->
                 SettingsNavRow(
-                    title = section.localizedTitle(language),
-                    subtitle = settingsSectionSubtitle(section, syncEnabled, language),
+                    title = section.localizedTitle(LocalAppLanguage.current),
+                    subtitle = settingsSectionSubtitle(section, syncEnabled, LocalAppLanguage.current),
                     icon = section.icon,
                     onClick = { onSelect(SettingsRoute.Section(section)) },
                     selected = selection is SettingsRoute.Section &&
@@ -539,8 +539,8 @@ private fun SettingsTvRail(
                     add(
                         Triple(
                             SettingsRoute.Section(section),
-                            section.localizedTitle(LocalAppLanguage.current),
-                            settingsSectionSubtitle(section, syncEnabled, LocalAppLanguage.current),
+                            section.localizedTitle(language),
+                            settingsSectionSubtitle(section, syncEnabled, language),
                         ),
                     )
                 }
