@@ -537,7 +537,7 @@ private fun SettingsTvRail(
                         Triple(
                             SettingsRoute.Section(section),
                             section.localizedTitle(LocalAppLanguage.current),
-                            settingsSectionSubtitle(section, syncEnabled),
+                            settingsSectionSubtitle(section, syncEnabled, LocalAppLanguage.current),
                         ),
                     )
                 }
