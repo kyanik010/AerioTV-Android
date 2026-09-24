@@ -158,6 +158,48 @@ fun settingsRouteForDeepLinkPage(
     else -> null
 }
 
+fun SettingsSection.localizedTitle(language: AppLanguage): String =
+    if (language == AppLanguage.ENGLISH) title else when (this) {
+        SettingsSection.LiveTV -> "التلفزيون المباشر"
+        SettingsSection.Player -> "المشغل"
+        SettingsSection.MoviesAndTvShows -> "الأفلام والمسلسلات"
+        SettingsSection.DvrSettings -> "التسجيلات"
+        SettingsSection.Appearance -> "المظهر"
+        SettingsSection.General -> "عام"
+        SettingsSection.RemoteControl -> "التحكم عن بُعد"
+        SettingsSection.Sync -> "المزامنة"
+        SettingsSection.AppUpdates -> "تحديثات التطبيق"
+        SettingsSection.Developer -> "المطور"
+        SettingsSection.About -> "حول"
+    }
+
+fun settingsSectionSubtitle(
+    section: SettingsSection,
+    syncEnabled: Boolean,
+    language: AppLanguage = AppLanguage.ENGLISH,
+): String? {
+    if (section == SettingsSection.Sync) {
+        return if (language == AppLanguage.ARABIC) {
+            if (syncEnabled) "مفعّل" else "متوقف"
+        } else {
+            if (syncEnabled) "On" else "Off"
+        }
+    }
+    return if (language == AppLanguage.ENGLISH) section.subtitle else when (section) {
+        SettingsSection.LiveTV -> "الدليل والمجموعات والشعارات والألوان"
+        SettingsSection.Player -> "إعدادات المشغل"
+        SettingsSection.MoviesAndTvShows -> "الأفلام والمسلسلات"
+        SettingsSection.DvrSettings -> "التسجيلات"
+        SettingsSection.Appearance -> "المظهر وحجم النص وتنسيق الوقت"
+        SettingsSection.General -> "بدء التشغيل والتحديث والشبكة"
+        SettingsSection.RemoteControl -> "تخصيص أزرار جهاز التحكم"
+        SettingsSection.Sync -> null
+        SettingsSection.AppUpdates -> "التحقق من الإصدارات الجديدة"
+        SettingsSection.Developer -> "السجلات والتشخيص"
+        SettingsSection.About -> null
+    }
+}
+
 /** True when [page] needs the active playlist id before it can be resolved. */
 fun settingsDeepLinkPageNeedsPlaylist(page: String): Boolean =
     page.trim().lowercase() == "playlist-detail" || page.trim().lowercase() == "edit-playlist"
