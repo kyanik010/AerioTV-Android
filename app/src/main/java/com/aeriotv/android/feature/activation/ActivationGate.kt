@@ -6,8 +6,6 @@ import android.content.Context
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
@@ -47,9 +45,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.aeriotv.android.BuildConfig
 import com.aeriotv.android.core.data.SourceType
@@ -199,27 +197,9 @@ private fun ActivationScreen(
     onRetry: () -> Unit,
 ) {
     val context = LocalContext.current
-    var logo by remember { mutableStateOf<Bitmap?>(null) }
-    var qrCode by remember { mutableStateOf<Bitmap?>(null) }
+    val logoRes = com.aeriotv.android.R.drawable.eagle_x_logo
+    val qrRes = com.aeriotv.android.R.drawable.eagle_x_support_qr
 
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.coroutineScope {
-            launch {
-                logo = loadActivationAsset(
-                    context,
-                    "https://raw.githubusercontent.com/kyanik010/mmm123/main/%D9%A2%D9%A0%D9%A2%D9%A6%D9%A0%D9%A9%D9%A2%D9%A4_%D9%A2%D9%A2%D9%A5%D9%A0%D9%A0%D9%A3.jpg",
-                    "eagle_x_logo.jpg",
-                )
-            }
-            launch {
-                qrCode = loadActivationAsset(
-                    context,
-                    "https://raw.githubusercontent.com/kyanik010/mmm123/main/chrome_qrcode_1790272750958.png",
-                    "eagle_x_support_qr.png",
-                )
-            }
-        }
-    }
 
     val statusText = when (state) {
         ActivationState.CHECKING -> "جاري التحقق من الجهاز..."
@@ -246,17 +226,11 @@ private fun ActivationScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                if (logo != null) {
-                    Image(
-                        bitmap = logo!!.asImageBitmap(),
-                        contentDescription = "Eagle X",
-                        modifier = Modifier.size(96.dp),
-                    )
-                } else {
-                    Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(strokeWidth = 2.dp)
-                    }
-                }
+                Image(
+                    painter = painterResource(id = logoRes),
+                    contentDescription = "Eagle X",
+                    modifier = Modifier.size(96.dp),
+                )
 
                 Text(
                     text = "Eagle X",
@@ -327,17 +301,11 @@ private fun ActivationScreen(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                 ) {
-                    if (qrCode != null) {
-                        Image(
-                            bitmap = qrCode!!.asImageBitmap(),
-                            contentDescription = "Support QR Code",
-                            modifier = Modifier.size(156.dp).padding(8.dp),
-                        )
-                    } else {
-                        Box(Modifier.size(156.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
+                    Image(
+                        painter = painterResource(id = qrRes),
+                        contentDescription = "Support QR Code",
+                        modifier = Modifier.size(156.dp).padding(8.dp),
+                    )
                 }
 
                 Button(
