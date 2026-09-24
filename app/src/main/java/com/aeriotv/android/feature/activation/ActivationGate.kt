@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -57,6 +58,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.isActive
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.NetworkInterface
@@ -78,6 +80,7 @@ fun ActivationGate(
     var state by remember { mutableStateOf(ActivationState.CHECKING) }
     var errorText by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val currentState by rememberUpdatedState(state)
 
     suspend fun check() {
         state = ActivationState.CHECKING
@@ -170,9 +173,9 @@ fun ActivationGate(
 
     LaunchedEffect(activationId) {
         check()
-        while (true) {
+        while (isActive) {
             delay(30_000)
-            if (state != ActivationState.ACTIVE) check()
+            if (currentState != ActivationState.ACTIVE) check()
         }
     }
 
@@ -368,7 +371,7 @@ private fun requestActivation(activationId: String): ActivationResponse {
                     )
                 }
                 ManagedActivationConfig(
-                    expiresAt = json.optString("expires_at").takeIf(String::isNotBlank),
+                    expiresAt = config.optString("expires_at").takeIf(String::isNotBlank),
                     video = video,
                     audio = audio,
                 )
