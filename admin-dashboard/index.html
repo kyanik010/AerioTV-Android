@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AerioTV Control</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#0b1020;color:#eef2ff;margin:0}
+.wrap{max-width:1050px;margin:40px auto;padding:20px}
+.card{background:#151c31;border:1px solid #27314f;border-radius:18px;padding:22px;margin-bottom:18px}
+h1{margin-top:0}input,select,button{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #34405f;background:#0d1426;color:#fff;margin:6px 0}
+button{cursor:pointer;background:#315efb;border:0;font-weight:700}button.secondary{background:#27314f}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
+.device{padding:16px;border:1px solid #2c3757;border-radius:14px;margin-top:12px}.muted{color:#aab4cf;font-size:13px}.error{color:#ff9b9b}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.row{display:block}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card" id="login">
+<h1>AerioTV Control</h1>
+<p class="muted">لوحة إدارة الأجهزة والاشتراكات</p>
+<input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
+<input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+<button id="loginBtn" onclick="login()">تسجيل الدخول</button>
+<div id="loginMsg" class="error"></div>
+</div>
+<div class="card" id="app" style="display:none">
+<div class="row">
+<div><h1>إدارة الأجهزة</h1><div id="who" class="muted"></div></div>
+<button class="secondary" onclick="logout()">تسجيل الخروج</button>
+</div>
+<input id="q" placeholder="الصق MAC Address أو Device ID هنا" autocomplete="off">
+<button onclick="searchDevice()">بحث عن الجهاز</button>
+<div id="results"></div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const URL='https://quaftlmuobshbnlhctmf.supabase.co';
+const KEY='sb_publishable_6mdnO-ezptIZzRKNfEbzaA_e9B-ulL5';
+const API=URL+'/functions/v1/admin-control';
+const sb=supabase.createClient(URL,KEY);
+let profiles=null;
+const $=id=>document.getElementById(id);
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  session?showApp(session):showLogin();
+}
+function showLogin(){$('login').style.display='block';$('app').style.display='none'}
+function showApp(session){$('login').style.display='none';$('app').style.display='block';$('who').textContent=session.user.email||'';loadProfiles()}
+async function login(){
+  $('loginMsg').textContent='';
+  const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+  if(error){$('loginMsg').textContent=error.message;return}
+  showApp(data.session);
+}
+async function logout(){await sb.auth.signOut();showLogin()}
+async function call(body){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)throw Error('انتهت الجلسة');
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});
+  const j=await r.json();
+  if(!r.ok)throw Error(j.error||'حدث خطأ');
+  return j;
+}
+async function loadProfiles(){try{profiles=await call({action:'profiles'})}catch(e){profiles=null}}
+async function searchDevice(){
+  $('results').innerHTML='<div class="muted">جاري البحث...</div>';
+  try{
+    const j=await call({action:'search',query:$('q').value});
+    if(!j.devices.length){$('results').innerHTML='<div class="muted">لم يتم العثور على جهاز.</div>';return}
+    $('results').innerHTML=j.devices.map(renderDevice).join('');
+  }catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function options(list,selected){return '<option value="">غير محدد</option>'+list.map(x=>'<option value="'+x.id+'" '+(x.id===selected?'selected':'')+'>'+esc(x.name)+'</option>').join('')}
+function renderDevice(d){
+  return '<div class="device"><b>'+esc(d.mac_address)+'</b><div class="muted">ID: '+esc(d.id)+'</div><div class="grid">'+
+  '<label>الحالة<select id="st-'+d.id+'"><option value="active" '+(d.status==='active'?'selected':'')+'>فعال</option><option value="suspended" '+(d.status==='suspended'?'selected':'')+'>موقوف</option><option value="expired" '+(d.status==='expired'?'selected':'')+'>منتهي</option></select></label>'+
+  '<label>تاريخ الانتهاء<input id="ex-'+d.id+'" type="datetime-local" value="'+toLocal(d.expires_at)+'"></label>'+
+  '<label>اشتراك الفيديو<select id="v-'+d.id+'">'+options(profiles?.video||[],d.video_profile_id)+'</select></label>'+
+  '<label>اشتراك الصوت<select id="a-'+d.id+'">'+options(profiles?.audio||[],d.audio_profile_id)+'</select></label></div>'+
+  '<div class="muted">آخر اتصال: '+esc(d.last_seen_at||'—')+'</div><button onclick="saveDevice(\''+d.id+'\')">حفظ التعديلات</button></div>'
+}
+function toLocal(x){if(!x)return '';const d=new Date(x),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
+async function saveDevice(id){
+  try{
+    const ex=$('ex-'+id).value;
+    await call({action:'update',id,status:$('st-'+id).value,expires_at:ex?new Date(ex).toISOString():null,video_profile_id:$('v-'+id).value||null,audio_profile_id:$('a-'+id).value||null});
+    alert('تم حفظ التعديلات');
+    await searchDevice();
+  }catch(e){alert(e.message)}
+}
+boot();
+</script>
+</body>
+</html>
