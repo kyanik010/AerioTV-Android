@@ -1090,11 +1090,8 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     NotificationPermissionGate()
-                    // ActivationGate is the first user-visible surface on cold launch.
-                    // Do not mount SplashGate/MainScreen before activation: otherwise the
-                    // customer briefly sees Live TV / Movies / Series before the gate.
-                    //
-                    // Phase 165/167: PersistentMpvWindow lives as a
+                    SplashGate {
+                        // Phase 165/167: PersistentMpvWindow lives as a
                         // SIBLING of NavHost inside an outer Box. The
                         // video SurfaceView is mounted ONCE at this scope
                         // and never changes parents -- only its modifier
@@ -1117,6 +1114,7 @@ class MainActivity : ComponentActivity() {
                             playlistRepository = playlistRepository,
                             audioSourceManager = audioSourceManager,
                         ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
                             // PersistentExoWindow is declared FIRST so it
                             // sits at the bottom of the z-stack. Fullscreen
                             // mode = NavHost (containing PlayerScreen
