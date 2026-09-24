@@ -386,7 +386,7 @@ fun ChannelListScreen(
         if (!isTv) com.aeriotv.android.feature.livetv.LiveTvPhoneHeaderRow(
             sidebarMode = phoneSidebarMode,
             activeGroupLabel = groupLabelFor(state.selectedGroup),
-            channelCount = filtered.size,
+            channelCount = filteredChannels.size,
             onOpenGroups = { phoneDrawerOpen = true },
             hiddenGroupsCount = hiddenGroups.size,
             onManageGroups = { manageGroupsOpen = true },
@@ -671,7 +671,7 @@ fun ChannelListScreen(
                 // gets a notice with a way out rather than a blank list. The
                 // pill row stays on screen here, so this is comfort rather
                 // than rescue; the guide is where it is load-bearing.
-                if (filtered.isEmpty()) {
+                if (filteredChannels.isEmpty()) {
                     item(key = "list.emptyGroup") {
                         EmptyGroupNotice(
                             isSearching = state.searchQuery.isNotBlank(),
@@ -685,7 +685,7 @@ fun ChannelListScreen(
                 // the same tvg-id to multiple distinct channels, so id is not
                 // unique. Compose LazyColumn hard-crashes on a duplicate key. url
                 // is unique per stream (GH #31 follow-up crash fix).
-                items(items = filtered, key = { it.url }) { channel ->
+                items(items = filteredChannels, key = { it.url }) { channel ->
                     val programmes = state.epgByChannel[channel.guideMatchKey].orEmpty()
                     val nowProgramme = programmes.nowPlaying()
                     ChannelRow(
