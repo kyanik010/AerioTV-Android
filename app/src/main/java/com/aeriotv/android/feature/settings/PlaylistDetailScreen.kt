@@ -57,6 +57,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aeriotv.android.core.data.db.entity.sourceTypeDisplayLabel
+import com.aeriotv.android.core.preferences.AppLanguage
+import com.aeriotv.android.core.preferences.LocalAppLanguage
 import com.aeriotv.android.feature.playlist.PlaylistViewModel
 import com.aeriotv.android.ui.adaptive.adaptiveFormWidth
 import com.aeriotv.android.ui.settings.SettingsDialogTextButton
@@ -231,54 +233,35 @@ fun PlaylistDetailScreen(
                             )
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
-                        DetailRow("Type", playlist.sourceTypeDisplayLabel())
-                        // Checkmark marks whichever URL is currently in effect
-                        // per PlaylistRepository.effectiveBaseUrl's decision.
-                        val activeRoute = state.activeRoute
+                        val language = LocalAppLanguage.current
+                        val isArabic = language == AppLanguage.ARABIC
                         DetailRow(
-                            label = "Remote URL",
-                            value = playlist.urlString,
-                            icon = Icons.Filled.CheckCircle.takeIf { activeRoute?.isLan == false },
-                            iconTint = MaterialTheme.colorScheme.primary,
+                            if (isArabic) "اسم المستخدم" else "Username",
+                            playlist.username?.takeIf { it.isNotBlank() } ?: "—",
                         )
-                        playlist.lanUrlString?.takeIf { it.isNotBlank() }?.let { lan ->
-                            DetailRow(
-                                label = "Local URL",
-                                value = lan,
-                                icon = Icons.Filled.CheckCircle.takeIf { activeRoute?.isLan == true },
-                                iconTint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                        playlist.username?.takeIf { it.isNotBlank() }?.let { user ->
-                            DetailRow("Username", user)
-                        }
-                        // Reflect a real signal -- whether the source has ever
-                        // loaded channels -- instead of asserting "Verified"
-                        // unconditionally (which read as connected even for a
-                        // source that never reached the server). The "Last
-                        // Connected" row below dates the last successful load.
                         val hasConnected = playlist.channelCount > 0
                         DetailRow(
-                            label = "Status",
-                            value = if (hasConnected) "Connected" else "Not connected yet",
-                            valueColor = if (hasConnected) {
-                                MaterialTheme.colorScheme.primary
+                            label = if (isArabic) "الحالة" else "Status",
+                            value = if (hasConnected) {
+                                if (isArabic) "متصل" else "Connected"
                             } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                if (isArabic) "غير متصل بعد" else "Not connected yet"
                             },
+                            valueColor = if (hasConnected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
                             icon = Icons.Filled.CheckCircle.takeIf { hasConnected },
                         )
-                        playlist.lastRefreshedAt?.let { ts ->
-                            DetailRow(
-                                "Last Connected",
+                        DetailRow(
+                            if (isArabic) "آخر اتصال" else "Last Connected",
+                            playlist.lastRefreshedAt?.let {
                                 DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-                                    .format(Date(ts)),
-                            )
-                        }
-                        DetailRow("Channels", playlist.channelCount.toString())
-                        if (!playlist.epgUrl.isNullOrBlank()) {
-                            DetailRow("EPG", playlist.epgUrl!!)
-                        }
+                                    .format(Date(it))
+                            } ?: if (isArabic) "لم يتم الاتصال بعد" else "Never",
+                        )
+                        DetailRow(
+                            if (isArabic) "القنوات" else "Channels",
+                            playlist.channelCount.toString(),
+                        )
                     }
                 }
             }
