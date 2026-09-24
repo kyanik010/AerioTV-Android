@@ -3,7 +3,6 @@ package com.aeriotv.android
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -60,7 +59,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {{
+class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
         val language = LanguageManager.get(newBase)
         val config = Configuration(newBase.resources.configuration)
