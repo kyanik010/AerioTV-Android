@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.aeriotv.android.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -49,6 +51,7 @@ fun ActivationGate(content: @Composable () -> Unit) {
     val activationId = remember { readActivationId(context) }
     var state by remember { mutableStateOf(ActivationState.CHECKING) }
     var errorText by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     suspend fun check() {
         state = ActivationState.CHECKING
