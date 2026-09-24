@@ -96,6 +96,8 @@ import androidx.compose.runtime.mutableStateListOf
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.aeriotv.android.core.data.M3UChannel
+import com.aeriotv.android.core.preferences.LocalAppLanguage
+import com.aeriotv.android.core.preferences.localizedLabel
 import com.aeriotv.android.core.data.guideMatchKey
 import com.aeriotv.android.core.playback.AerioExoPlayerHolder
 import com.aeriotv.android.feature.dvr.DvrTabContent
@@ -1578,7 +1580,7 @@ private fun TabletTopTabBar(
         tabs.forEach { tab ->
             val isSel = tab == selected
             Text(
-                text = tab.label,
+                text = tab.localizedLabel(LocalAppLanguage.current),
                 fontSize = 17.sp * scale,
                 fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Medium,
                 // iPad: the selected tab is a LIGHTER neutral fill with accent
@@ -1648,13 +1650,13 @@ private fun FloatingTabBar(
             ) {
                 Icon(
                     imageVector = if (isSel) tab.iconSelected else tab.iconUnselected,
-                    contentDescription = tab.label,
+                    contentDescription = tab.localizedLabel(LocalAppLanguage.current),
                     tint = if (isSel) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp),
                 )
                 Text(
-                    text = tab.label,
+                    text = tab.localizedLabel(LocalAppLanguage.current),
                     fontSize = 10.sp,
                     lineHeight = 12.sp,
                     // One line at every Text Size: the bar grows taller with
@@ -1696,7 +1698,7 @@ private fun MinimizedTabPill(
         ) {
             Icon(
                 imageVector = tab.iconSelected,
-                contentDescription = "Show tab bar, ${tab.label}",
+                contentDescription = "Show tab bar, ${tab.localizedLabel(LocalAppLanguage.current)}",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp),
             )
@@ -2232,7 +2234,7 @@ private fun TvTab(
             modifier = Modifier.size(14.dp),
         )
         Text(
-            text = tab.label,
+            text = tab.localizedLabel(LocalAppLanguage.current),
             color = foreground,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
