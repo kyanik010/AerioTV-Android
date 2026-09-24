@@ -16,9 +16,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.os.Handler
 import android.os.Looper
-import kotlinx.coroutines.withContext
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -42,13 +47,37 @@ class AudioSourceManager @javax.inject.Inject constructor(
     private val _syncMs = MutableStateFlow(prefs.getInt("sync_ms", 0))
     val syncMs: StateFlow<Int> = _syncMs.asStateFlow()
 
+    private val cacheFile: File by lazy { File(context.filesDir, "audio_channels.cache") }
+
     init {
-        // The audio library is restored at application startup, not only when
-        // the Audio screen is opened. This makes the saved M3U immediately
-        // available to the in-player "Audio Source" picker after relaunch.
+        // Restore the parsed M3U catalog from disk immediately. The old code
+        // downloaded and parsed the complete M3U on every process start,
+        // which is especially expensive for catalogs containing hundreds of
+        // thousands of audio channels.
         val savedUrl = _url.value
         if (savedUrl.isNotBlank()) {
-            scope.launch { loadPlaylist(savedUrl) }
+            scope.launch {
+                val restored = loadCachedChannels(savedUrl)
+                if (!restored) {
+                    loadPlaylist(savedUrl)
+                }
+            }
+        }
+    }
+
+    /**
+     * Control-plane friendly loader used by device activation.
+     * If Supabase assigns the same M3U URL already stored on this device, the
+     * parsed catalog is restored from disk and no network download occurs.
+     * A changed URL invalidates the cache and performs one fresh download.
+     */
+    suspend fun loadPlaylistIfChanged(rawUrl: String): Result<Int> = withContext(Dispatchers.IO) {
+        val normalized = rawUrl.trim()
+        require(normalized.isNotEmpty()) { "M3U URL is empty" }
+        if (_url.value.trim() == normalized && loadCachedChannels(normalized)) {
+            Result.success(_channels.value.size)
+        } else {
+            loadPlaylist(normalized)
         }
     }
 
@@ -57,18 +86,69 @@ class AudioSourceManager @javax.inject.Inject constructor(
             val normalized = rawUrl.trim()
             require(normalized.isNotEmpty()) { "M3U URL is empty" }
             val connection = URL(normalized).openConnection() as HttpURLConnection
-            connection.connectTimeout = 15_000
-            connection.readTimeout = 30_000
-            connection.setRequestProperty("User-Agent", "AerioTV/Audio")
-            val text = connection.inputStream.bufferedReader().use { it.readText() }
-            connection.disconnect()
-            val parsed = parseM3u(text)
-            require(parsed.isNotEmpty()) { "No audio channels found in M3U" }
-            _url.value = normalized
-            prefs.edit().putString("m3u_url", normalized).apply()
-            _channels.value = parsed
-            restoreSelected()
-            parsed.size
+            try {
+                connection.connectTimeout = 15_000
+                connection.readTimeout = 30_000
+                connection.setRequestProperty("User-Agent", "AerioTV/Audio")
+                val text = connection.inputStream.bufferedReader().use { it.readText() }
+                val parsed = parseM3u(text)
+                require(parsed.isNotEmpty()) { "No audio channels found in M3U" }
+                _url.value = normalized
+                prefs.edit().putString("m3u_url", normalized).apply()
+                _channels.value = parsed
+                saveCachedChannels(normalized, parsed)
+                restoreSelected()
+                parsed.size
+            } finally {
+                connection.disconnect()
+            }
+        }
+    }
+
+    private suspend fun loadCachedChannels(expectedUrl: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            if (!cacheFile.exists()) return@runCatching false
+            DataInputStream(BufferedInputStream(cacheFile.inputStream(), 64 * 1024)).use { input ->
+                val version = input.readInt()
+                if (version != 1) return@runCatching false
+                val cachedUrl = input.readUTF()
+                if (cachedUrl != expectedUrl) return@runCatching false
+                val count = input.readInt()
+                if (count < 0 || count > 2_000_000) return@runCatching false
+                val parsed = ArrayList<AudioM3uChannel>(count)
+                repeat(count) {
+                    val name = input.readUTF()
+                    val url = input.readUTF()
+                    val logo = input.readUTF().takeIf { it.isNotEmpty() }
+                    val group = input.readUTF().takeIf { it.isNotEmpty() }
+                    parsed += AudioM3uChannel(name, url, logo, group)
+                }
+                _url.value = cachedUrl
+                _channels.value = parsed
+                restoreSelected()
+                true
+            }
+        }.getOrDefault(false)
+    }
+
+    private suspend fun saveCachedChannels(url: String, channels: List<AudioM3uChannel>) = withContext(Dispatchers.IO) {
+        runCatching {
+            val tmp = File(cacheFile.parentFile, "${cacheFile.name}.tmp")
+            DataOutputStream(BufferedOutputStream(tmp.outputStream(), 64 * 1024)).use { output ->
+                output.writeInt(1)
+                output.writeUTF(url)
+                output.writeInt(channels.size)
+                channels.forEach { channel ->
+                    output.writeUTF(channel.name)
+                    output.writeUTF(channel.url)
+                    output.writeUTF(channel.logo.orEmpty())
+                    output.writeUTF(channel.group.orEmpty())
+                }
+            }
+            if (!tmp.renameTo(cacheFile)) {
+                cacheFile.delete()
+                tmp.renameTo(cacheFile)
+            }
         }
     }
 
