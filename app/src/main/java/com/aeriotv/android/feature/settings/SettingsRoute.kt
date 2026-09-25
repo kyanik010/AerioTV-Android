@@ -126,6 +126,12 @@ fun visibleSettingsSections(
             if (updaterEnabled) add(SettingsSection.AppUpdates)
         },
     ),
+    SettingsSectionGroupSpec(
+        key = "system",
+        // Restored from the official upstream Settings canon.
+        header = "",
+        sections = listOf(SettingsSection.Developer, SettingsSection.About),
+    ),
 )
 
 /**
