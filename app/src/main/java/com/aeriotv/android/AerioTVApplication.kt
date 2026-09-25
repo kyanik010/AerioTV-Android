@@ -54,21 +54,12 @@ import kotlinx.coroutines.launch
 class AerioTVApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var dispatcharrWarmup: DispatcharrWarmupCoordinator
-    @Inject lateinit var debugLogger: DebugLogger
-    @Inject lateinit var appPreferences: AppPreferences
-    @Inject lateinit var reminderBannerBus: ReminderBannerBus
-    @Inject lateinit var resourceTelemetry: ResourceTelemetry
-    @Inject lateinit var multiviewStore: MultiviewStore
-    @Inject lateinit var memoryPressureBus: MemoryPressureBus
-    @Inject lateinit var activeCredentials: ActivePlaylistCredentials
-    @Inject lateinit var castReceiver: com.aeriotv.android.core.cast.AerioCastReceiverController
-    @Inject lateinit var castNotificationController: com.aeriotv.android.core.cast.CastNotificationController
-    @Inject lateinit var companionHost: com.aeriotv.android.core.cast.companion.CompanionHostController
-    @Inject lateinit var playlistRepository: PlaylistRepository
-    @Inject lateinit var playlistDao: PlaylistDao
-    @Inject lateinit var aerioDatabase: AerioDatabase
-    @Inject lateinit var timeshiftStore: com.aeriotv.android.core.timeshift.TimeshiftBufferStore
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var startupCoordinator: AerioStartupCoordinator
+    @Inject lateinit var activeCredentials: javax.inject.Provider<ActivePlaylistCredentials>
+    @Inject lateinit var multiviewStore: javax.inject.Provider<MultiviewStore>
+    @Inject lateinit var memoryPressureBus: javax.inject.Provider<MemoryPressureBus>
+    @Inject lateinit var resourceTelemetry: javax.inject.Provider<ResourceTelemetry>
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -99,7 +90,7 @@ class AerioTVApplication : Application(), Configuration.Provider, SingletonImage
         // Header injection is scoped via ActivePlaylistCredentials so a
         // third-party tvg-logo CDN doesn't see the key.
         val imageHttp = OkHttpClient.Builder()
-            .addInterceptor(DispatcharrImageAuthInterceptor(activeCredentials))
+            .addInterceptor(DispatcharrImageAuthInterceptor(activeCredentials.get()))
             .build()
         return ImageLoader.Builder(context)
             .memoryCache {
@@ -131,7 +122,7 @@ class AerioTVApplication : Application(), Configuration.Provider, SingletonImage
                 // / etc. Playlist providers can put anything in `tvg-logo`
                 // and a few other text fields; this keeps Coil from
                 // honouring a hostile value.
-                add(SafeUrlInterceptor(activeCredentials))
+                add(SafeUrlInterceptor(activeCredentials.get()))
             }
             .crossfade(true)
             .build()
@@ -139,163 +130,13 @@ class AerioTVApplication : Application(), Configuration.Provider, SingletonImage
 
     override fun onCreate() {
         super.onCreate()
-        // Firebase Cloud Messaging: subscribe once when the app process is initialized.
-        // Keeping this at application startup avoids relying only on onNewToken(),
-        // while avoiding a subscribe call from every Activity launch.
-        appScope.launch {
-            runCatching {
-                com.google.firebase.messaging.FirebaseMessaging.getInstance()
-                    .subscribeToTopic("all_users")
-            }
-        }
-        // Crash capture FIRST, and independent of the Debug Logging toggle: a
-        // user whose app dies seconds after launch cannot turn logging on in
-        // time, so the report has to be collected without being asked for.
-        // A pending report from the previous run is folded into the debug log
-        // file the Settings screens already view and share.
+        // Keep process creation lightweight. Crash capture is installed first;
+        // the remaining integrations are admitted after MainActivity draws its
+        // first UI frame so a TV can render and receive D-pad focus before
+        // networking/cast/background maintenance starts.
         com.aeriotv.android.core.debug.CrashReporter.install(this)
-        appScope.launch {
-            com.aeriotv.android.core.debug.CrashReporter
-                .publishToDebugLog(this@AerioTVApplication, debugLogger.logFile())
-        }
-        // Time Format: seed the process-wide clock mode and follow the pref.
         com.aeriotv.android.core.ui.ClockFormat.init(this)
-        appScope.launch {
-            appPreferences.timeFormat.collect {
-                com.aeriotv.android.core.ui.ClockFormat.mode.value =
-                    com.aeriotv.android.core.ui.ClockFormat.fromPref(it)
-            }
-        }
-        // Skip Intervals: keep the process-wide pair on the synced prefs so
-        // player composables, the media session, and the remote sheets read
-        // the current values synchronously.
-        appScope.launch {
-            appPreferences.skipBackSeconds.distinctUntilChanged().collect {
-                com.aeriotv.android.core.ui.SkipIntervals.backSeconds.value = it
-            }
-        }
-        appScope.launch {
-            appPreferences.skipForwardSeconds.distinctUntilChanged().collect {
-                com.aeriotv.android.core.ui.SkipIntervals.forwardSeconds.value = it
-            }
-        }
-        dispatcharrWarmup.bind()
-        // Track foreground state so reminders that fire while the app is open
-        // surface as an in-app banner instead of a system notification.
-        reminderBannerBus.bind()
-        // Cast Connect receiver (GH #33). No-op on phones/tablets and on any
-        // device without Google Play services; only an Android TV can be
-        // launched as a receiver. Wired here so the receiver is ready the moment
-        // a sender casts, before MainActivity forwards the LAUNCH intent.
-        castReceiver.bootstrap(this)
-        // GH #33: standalone "Casting to <TV>" notification driven by cast state,
-        // so it reappears after a force-close/reopen while the session resumes
-        // (the media FGS notification can't cover that case).
-        castNotificationController.start()
-        // GH #33 companion remote (second-screen): on Android TV, advertise over
-        // mDNS/NSD + run the pairing WebSocket server so a phone can drive this
-        // TV's native player. No-op on phones (FEATURE_LEANBACK-gated internally).
-        companionHost.start()
-        // Live Rewind launch sweep (user clarification 2026-07-11: buffers
-        // die an hour after the SESSION ends, "which may end up meaning it
-        // should be deleted the NEXT time the app is launched").
-        // TimeshiftController's own reaper only runs when playback first
-        // touches it, so a launch where the user never tunes a channel
-        // would otherwise leave yesterday's buffers on disk.
-        appScope.launch {
-            runCatching {
-                timeshiftStore.pruneExpired(
-                    com.aeriotv.android.core.timeshift.TimeshiftController.FIXED_RETENTION_MS,
-                )
-                timeshiftStore.enforceBudget(timeshiftStore.freeSpaceBudgetBytes())
-            }
-        }
-        // libmpv is gone (task #67). Media3's ExoPlayer + MediaCodec
-        // path doesn't need a process-wide warmup pre-pay -- the first
-        // ExoPlayer.Builder allocation handles the framework warm-up
-        // implicitly.
-        // Audit task #37: periodic resource snapshots (PSS, FD count, thermal,
-        // sys memory) into logcat, debug builds only. Diagnostic trail for the
-        // "AerioTV crashes on the Google TV Streamer" reports - by the time a
-        // crash hits we have a recent timeline of memory + thermal pressure.
-        resourceTelemetry.start()
-        appScope.launch {
-            // distinctUntilChanged: DataStore re-emits on EVERY write to ANY
-            // key in the store, and setEnabled(true) appends an "ENABLED"
-            // anchor line each time it runs. Only react to actual flips.
-            appPreferences.debugLoggingEnabled.distinctUntilChanged().collectLatest { enabled ->
-                debugLogger.setEnabled(enabled)
-            }
-        }
-        // Audit task #48: periodic background EPG + channel refresh so the
-        // cache is always warm. Driven by a DataStore toggle (default ON,
-        // user-overridable in Network Settings). collectLatest re-evaluates
-        // whenever the user flips it.
-        appScope.launch {
-            // P1 #7: react to BOTH the on/off toggle AND the user's chosen
-            // interval. `combine` re-fires whenever either flow emits, so a
-            // user changing the interval from 6h to 24h immediately
-            // re-anchors the WorkManager schedule (UPDATE policy on the
-            // worker side). The pair is observed once at startup; a fresh
-            // install collects the default (true, 360min).
-            combine(
-                appPreferences.backgroundRefreshEnabled,
-                appPreferences.backgroundRefreshIntervalMins,
-            ) { enabled, mins -> enabled to mins }
-                .collectLatest { (enabled, mins) ->
-                    if (enabled) {
-                        PlaylistRefreshWorker.enqueuePeriodic(
-                            this@AerioTVApplication,
-                            intervalMins = mins,
-                        )
-                    } else {
-                        PlaylistRefreshWorker.cancel(this@AerioTVApplication)
-                    }
-                }
-        }
-        // Audit task #54: prime the credential cache from disk on cold
-        // launch so Coil's first batch of Dispatcharr logo requests (the
-        // ones fired in the splash -> bootstrap window, before any
-        // user-initiated load) carry X-API-Key. PlaylistRepository
-        // .activePlaylist() also publishes; this is the bootstrap nudge.
-        appScope.launch {
-            runCatching { playlistRepository.activePlaylist() }
-        }
-        // Audit task #53: one-time pass that re-encrypts existing plaintext
-        // playlist credentials at rest. New writes already encrypt via the
-        // EncryptingPlaylistDao decorator; this upgrades rows saved by older
-        // builds. Reading through the decorator yields cleartext, the targeted
-        // updateCredentials() re-encrypts only the three credential columns.
-        //
-        // Wrapped in a single Room transaction so the read+writes are atomic:
-        // a concurrent cold-start write (warmup refreshing apiKey on 401,
-        // refresh() stamping lastRefreshedAt/channelCount) can neither be
-        // clobbered by this pass nor interleave with it, and Room coalesces the
-        // invalidations into one Flow emission. Idempotent and flag-guarded, so
-        // a fresh install (no rows) just sets the flag and a kill mid-pass
-        // re-runs harmlessly next launch. Rows with no credentials are skipped.
-        appScope.launch {
-            runCatching {
-                if (!appPreferences.credentialsEncryptedOnce()) {
-                    aerioDatabase.withTransaction {
-                        playlistDao.allOnce().forEach { row ->
-                            if (!row.apiKey.isNullOrBlank() ||
-                                !row.username.isNullOrBlank() ||
-                                !row.password.isNullOrBlank()
-                            ) {
-                                playlistDao.updateCredentials(
-                                    row.id,
-                                    row.apiKey,
-                                    row.username,
-                                    row.password,
-                                )
-                            }
-                        }
-                    }
-                    appPreferences.setCredentialsEncrypted(true)
-                }
-            }
-        }
+        startupCoordinator.publishPendingCrashLog(this)
     }
 
     /**
@@ -308,18 +149,18 @@ class AerioTVApplication : Application(), Configuration.Provider, SingletonImage
      */
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        resourceTelemetry.onTrimMemory(level)
+        resourceTelemetry.get().onTrimMemory(level)
         // Audit task #35 OOM guard: shed inactive multiview tiles when the
         // system signals critical pressure. Multiview is the single largest
         // resource consumer (up to 9 concurrent mpv handles + SurfaceViews +
         // audio tracks), so dropping non-focused tiles is the most effective
         // way to keep the process alive. No-op for softer trim levels.
-        multiviewStore.onMemoryPressure(level)
+        multiviewStore.get().onMemoryPressure(level)
         // Audit task #58 (Phase 144): fan-out to any nav-scoped ViewModel
         // that can drop large in-memory state (PlaylistViewModel's
         // epgByChannel map; future: parsed playlists, large bitmap arenas).
         // The bus's replay=1 means a ViewModel created after this fires
         // still sees the most recent signal and can shed accordingly.
-        memoryPressureBus.emit(level)
+        memoryPressureBus.get().emit(level)
     }
 }
