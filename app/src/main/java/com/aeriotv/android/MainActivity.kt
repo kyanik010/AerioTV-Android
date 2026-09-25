@@ -63,11 +63,6 @@ import kotlinx.coroutines.flow.first
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen(this)
-        super.onCreate(savedInstanceState)
-    }
-
     override fun attachBaseContext(newBase: Context) {
         val language = LanguageManager.get(newBase)
         val config = Configuration(newBase.resources.configuration)
@@ -858,6 +853,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen(this)
         super.onCreate(savedInstanceState)
         // GH#40 rate match: the seamless matcher reports the content rate
         // class; pick a same-size display mode at that rate when needed.
