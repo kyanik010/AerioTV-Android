@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.doOnPreDraw
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -411,7 +412,7 @@ class MainActivity : ComponentActivity() {
         // D-pad focus, and activation independent from cast/network/background work.
         window.decorView.doOnPreDraw {
             window.decorView.post {
-                startupCoordinator.startAfterFirstFrame(this@MainActivity)
+                startupCoordinator.startAfterFirstFrame(application)
             }
         }
     }
@@ -863,7 +864,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen(this)
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         // GH#40 rate match: the seamless matcher reports the content rate
         // class; pick a same-size display mode at that rate when needed.
