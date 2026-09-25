@@ -287,6 +287,7 @@ dependencies {
     // a baseline profile those methods are AOT'd at install and run native
     // from the first frame.
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.androidx.core.splashscreen)
 
     debugImplementation(libs.androidx.ui.tooling)
 }
