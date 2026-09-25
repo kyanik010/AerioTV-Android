@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aeriotv.android.R
 import com.aeriotv.android.ui.settings.rememberIsTvDevice
-import kotlinx.coroutines.delay
 
 /**
  * Cold-launch splash. Mirrors the CURRENT iOS/tvOS SplashView
@@ -58,7 +57,8 @@ fun SplashGate(
 ) {
     var finished by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(1_200L)
+        // The system splash now covers cold-start process initialization.
+        // Do not add another artificial 1.2s delay before the activation UI.
         finished = true
     }
     if (finished) content() else SplashContent()
