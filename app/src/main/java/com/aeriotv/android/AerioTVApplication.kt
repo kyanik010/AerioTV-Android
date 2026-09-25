@@ -54,7 +54,6 @@ import kotlinx.coroutines.launch
 class AerioTVApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var startupCoordinator: AerioStartupCoordinator
     @Inject lateinit var activeCredentials: javax.inject.Provider<ActivePlaylistCredentials>
     @Inject lateinit var multiviewStore: javax.inject.Provider<MultiviewStore>
