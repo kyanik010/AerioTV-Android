@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.app.Activity
 import android.content.Context
 import android.os.Build
+import android.content.res.Configuration
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -23,6 +24,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -47,6 +50,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -211,6 +215,8 @@ private fun ActivationScreen(
     val logoRes = com.aeriotv.android.R.drawable.eagle_x_activation_logo
     val qrRes = com.aeriotv.android.R.drawable.eagle_x_support_qr
     var showLanguageMenu by remember { mutableStateOf(false) }
+    val isTv = (LocalConfiguration.current.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+        Configuration.UI_MODE_TYPE_TELEVISION
 
     val statusText = when (state) {
         ActivationState.CHECKING -> if (isArabic) "جاري التحقق من الجهاز..." else "Checking device..."
@@ -225,24 +231,31 @@ private fun ActivationScreen(
     Box(
         modifier = Modifier.fillMaxSize()
             .background(Brush.verticalGradient(listOf(Color(0xFF050912), Color(0xFF0A1220), Color(0xFF03060B))))
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(
+                horizontal = if (isTv) 48.dp else 20.dp,
+                vertical = if (isTv) 28.dp else 16.dp,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Card(
-            modifier = Modifier.widthIn(max = 620.dp).fillMaxWidth(),
+            modifier = Modifier.widthIn(max = if (isTv) 820.dp else 620.dp).fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xCC0D1522)),
             border = BorderStroke(1.dp, Color(0x335BE7F2)),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 20.dp),
+                modifier = Modifier.fillMaxWidth().padding(
+                    horizontal = if (isTv) 34.dp else 22.dp,
+                    vertical = if (isTv) 24.dp else 20.dp,
+                ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(if (isTv) 8.dp else 10.dp),
             ) {
                 Image(
                     painter = painterResource(id = logoRes),
                     contentDescription = "Eagle X",
-                    modifier = Modifier.size(148.dp),
+                    modifier = Modifier.size(if (isTv) 126.dp else 148.dp),
                 )
                 Text("Eagle X", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
 
@@ -350,13 +363,13 @@ private fun ActivationScreen(
                     Image(
                         painter = painterResource(id = qrRes),
                         contentDescription = "Support QR Code",
-                        modifier = Modifier.size(176.dp).padding(9.dp),
+                        modifier = Modifier.size(if (isTv) 150.dp else 176.dp).padding(8.dp),
                     )
                 }
 
                 Button(
                     onClick = onRetry,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(if (isTv) 58.dp else 52.dp),
                     enabled = state != ActivationState.CHECKING && state != ActivationState.ACTIVATING,
                     shape = RoundedCornerShape(16.dp),
                 ) {
