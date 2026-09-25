@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -83,6 +84,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var activationConfigStore: ActivationConfigStore
     @Inject lateinit var playlistRepository: PlaylistRepository
     @Inject lateinit var audioSourceManager: AudioSourceManager
+    @Inject lateinit var startupCoordinator: AerioStartupCoordinator
 
     /**
      * Most recent deep-link target the activity has received from a
@@ -403,6 +405,14 @@ class MainActivity : ComponentActivity() {
             // launcher (#120).
             runCatching { PipState.onPipDismissed?.invoke() }
             AerioMediaPlaybackService.stop(this)
+        }
+        // StreamVault-style startup boundary: do not admit heavy process integrations
+        // until Android has submitted the first UI frame. This keeps TV startup,
+        // D-pad focus, and activation independent from cast/network/background work.
+        window.decorView.doOnPreDraw {
+            window.decorView.post {
+                startupCoordinator.startAfterFirstFrame(this@MainActivity)
+            }
         }
     }
 
