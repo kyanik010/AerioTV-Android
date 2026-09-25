@@ -139,6 +139,15 @@ class AerioTVApplication : Application(), Configuration.Provider, SingletonImage
 
     override fun onCreate() {
         super.onCreate()
+        // Firebase Cloud Messaging: subscribe once when the app process is initialized.
+        // Keeping this at application startup avoids relying only on onNewToken(),
+        // while avoiding a subscribe call from every Activity launch.
+        appScope.launch {
+            runCatching {
+                com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                    .subscribeToTopic("all_users")
+            }
+        }
         // Crash capture FIRST, and independent of the Debug Logging toggle: a
         // user whose app dies seconds after launch cannot turn logging on in
         // time, so the report has to be collected without being asked for.
