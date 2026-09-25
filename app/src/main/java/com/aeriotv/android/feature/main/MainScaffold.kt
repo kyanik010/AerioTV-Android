@@ -686,14 +686,9 @@ fun MainScaffold(
     // first visit. They lose nothing else - hidden slots still measure at the
     // real size once a tab has been visited, so there are no slivers, and the
     // hero's own zero-width guard covers the first pass either way.
-    val prewarmAllowed = remember(context) {
-        val am = context.getSystemService(android.content.Context.ACTIVITY_SERVICE)
-            as? android.app.ActivityManager
-        val info = android.app.ActivityManager.MemoryInfo().also { am?.getMemoryInfo(it) }
-        val lowRam = am?.isLowRamDevice ?: false
-        val totalMem = info.totalMem
-        !lowRam && totalMem >= 3L * 1024L * 1024L * 1024L
-    }
+    // Startup diagnosis: disable hidden-tab composition until the first-launch
+    // path and TV D-pad focus are stable. This changes no TV dimensions or layout.
+    val prewarmAllowed = false
     // A sweep already under way stops for good the first time the system asks
     // for memory back (TRIM_MEMORY_RUNNING_LOW or worse). The tabs it already
     // built stay: they are the ones the user is most likely to open, and
