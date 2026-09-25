@@ -185,6 +185,8 @@ class PlaylistRepository @Inject constructor(
     private val vodSnapshotStore: com.aeriotv.android.core.preferences.VodLibrarySnapshotStore,
 ) {
 
+    private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     /** Last successful cast-profile re-resolve per playlist id, so the launch
      *  and foreground triggers coalesce to one lookup per 15 minutes. */
 
@@ -512,12 +514,20 @@ class PlaylistRepository @Inject constructor(
         } else {
             dao.upsert(entity)
         }
-        // Cache the first-load channels so the very next launch is instant
-        // (Phase 130 channel snapshot cache).
-        try {
-            saveChannelsToCache(playlistId, channels)
-        } catch (t: Throwable) {
-            android.util.Log.w("PlaylistRepository", "saveChannelsToCache failed (loadAndPersist)", t)
+        // Do not block activation/navigation on the large disk snapshot.
+        // The freshly fetched [channels] are already returned to the UI; the
+        // snapshot is only a cold-launch optimization. Persist it in the
+        // repository IO scope so a large XC catalog cannot make the TV appear
+        // frozen or crash while Room binds thousands of rows.
+        cacheScope.launch {
+            runCatching { saveChannelsToCache(playlistId, channels) }
+                .onFailure {
+                    android.util.Log.w(
+                        "PlaylistRepository",
+                        "saveChannelsToCache failed (loadAndPersist)",
+                        it,
+                    )
+                }
         }
         publishActiveCredentials(entity)
         // Playlist creation / edit: take the per-user capability snapshot now,
