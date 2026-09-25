@@ -63,6 +63,11 @@ import kotlinx.coroutines.flow.first
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen(this)
+        super.onCreate(savedInstanceState)
+    }
+
     override fun attachBaseContext(newBase: Context) {
         val language = LanguageManager.get(newBase)
         val config = Configuration(newBase.resources.configuration)
