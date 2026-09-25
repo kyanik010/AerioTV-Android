@@ -2724,10 +2724,17 @@ class PlaylistRepository @Inject constructor(
         // mainstream clients do.
         // Group names are a separate 83KB call. A failure here costs only
         // the group labels, so it must not fail the whole playlist.
-        val categoryNames = runCatching {
-            xtreamApi.getLiveCategories(b, user, pass).associate { it.id to it.name }
-        }.getOrDefault(emptyMap())
-        val streams = xtreamApi.getLiveStreams(b, user, pass)
+        val (categoryNames, streams) = coroutineScope {
+            val categoriesDeferred = async(Dispatchers.IO) {
+                runCatching {
+                    xtreamApi.getLiveCategories(b, user, pass).associate { it.id to it.name }
+                }.getOrDefault(emptyMap())
+            }
+            val streamsDeferred = async(Dispatchers.IO) {
+                xtreamApi.getLiveStreams(b, user, pass)
+            }
+            categoriesDeferred.await() to streamsDeferred.await()
+        }
         if (streams.isEmpty()) {
             // Same contract as PlaylistFetcher's empty-body guard: a
             // playlist that resolves to zero channels is a failure to
