@@ -54,7 +54,6 @@ import kotlinx.coroutines.launch
 class AerioTVApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var startupCoordinator: AerioStartupCoordinator
     @Inject lateinit var activeCredentials: javax.inject.Provider<ActivePlaylistCredentials>
     @Inject lateinit var multiviewStore: javax.inject.Provider<MultiviewStore>
     @Inject lateinit var memoryPressureBus: javax.inject.Provider<MemoryPressureBus>
@@ -129,13 +128,8 @@ class AerioTVApplication : Application(), Configuration.Provider, SingletonImage
 
     override fun onCreate() {
         super.onCreate()
-        // Keep process creation lightweight. Crash capture is installed first;
-        // the remaining integrations are admitted after MainActivity draws its
-        // first UI frame so a TV can render and receive D-pad focus before
-        // networking/cast/background maintenance starts.
         com.aeriotv.android.core.debug.CrashReporter.install(this)
         com.aeriotv.android.core.ui.ClockFormat.init(this)
-        startupCoordinator.publishPendingCrashLog(this)
     }
 
     /**
