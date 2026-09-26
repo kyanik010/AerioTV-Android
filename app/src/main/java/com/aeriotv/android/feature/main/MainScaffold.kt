@@ -438,7 +438,7 @@ fun MainScaffold(
     }
     val activationStore = remember {
         dagger.hilt.android.EntryPointAccessors.fromApplication(
-            context.applicationContext,
+            androidx.compose.ui.platform.LocalContext.current.applicationContext,
             MainScaffoldEntryPoint::class.java,
         ).activationConfigStore()
     }
