@@ -1,0 +1,116 @@
+name: Apply Home Reference Integration
+
+on:
+  push:
+    branches:
+      - ui/reference-home-2026-09-26
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/reference-home-2026-09-26
+          fetch-depth: 0
+      - name: Apply integration patch
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          main = Path("app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt")
+          s = main.read_text()
+
+          s = s.replace(
+              "var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }",
+              "var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }",
+              1,
+          )
+
+          s = s.replace(
+              "?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.LiveTV",
+              "?.takeIf { it in tabs && it != AppTab.Search } ?: if (AppTab.Home in tabs) AppTab.Home else AppTab.LiveTV",
+              1,
+          )
+
+          s = s.replace(
+              "internal fun visibleTabs(\n    hasFavorites: Boolean = false,",
+              "internal fun visibleTabs(\n    includeHome: Boolean = false,\n    hasFavorites: Boolean = false,",
+              1,
+          )
+          s = s.replace(
+              "): List<AppTab> = buildList {\n    add(AppTab.LiveTV)",
+              "): List<AppTab> = buildList {\n    if (includeHome) add(AppTab.Home)\n    add(AppTab.LiveTV)",
+              1,
+          )
+
+          s = s.replace(
+              "val live = visibleTabs(\n            // Phone/tablet: Favorites",
+              "val live = visibleTabs(\n            includeHome = isTvShell,\n            // Phone/tablet: Favorites",
+              1,
+          )
+          s = s.replace(
+              "visibleTabs(\n            hasFavorites = AppTab.Favorites in stickyTabs,",
+              "visibleTabs(\n            includeHome = isTvShell,\n            hasFavorites = AppTab.Favorites in stickyTabs,",
+              1,
+          )
+
+          old = """            AppTab.LiveTV -> {\n    LiveTVTabContent("""
+          new = """            AppTab.Home -> {\n                AerioHomeScreen(\n                    playlistViewModel = viewModel,\n                    onSelectTab = onSelectTab,\n                    modifier = Modifier.fillMaxSize(),\n                )\n            }\n            AppTab.LiveTV -> {\n    LiveTVTabContent("""
+          if old not in s:
+              raise SystemExit("MainTabContent Home insertion marker not found")
+          s = s.replace(old, new, 1)
+
+          # The old TV top pill is intentionally disabled for this reference-matched
+          # home surface. The Home screen owns its four-button left rail.
+          marker = "private fun TvTopTabBar(\n"
+          pos = s.find(marker)
+          if pos < 0:
+              raise SystemExit("TvTopTabBar marker not found")
+          body_start = s.find(") {\n", pos)
+          if body_start < 0:
+              raise SystemExit("TvTopTabBar body marker not found")
+          insert_at = body_start + len(") {\n")
+          s = s[:insert_at] + "    return\n" + s[insert_at:]
+
+          s = s.replace("                62.dp\n            }", "                0.dp\n            }", 1)
+          s = s.replace("            } else {\n                barInset - 12.dp\n            }", "            } else {\n                0.dp\n            }", 1)
+
+          main.write_text(s)
+
+          home = Path("app/src/main/java/com/aeriotv/android/feature/main/AerioHomeScreen.kt")
+          h = home.read_text()
+          h = h.replace("import androidx.compose.foundation.border\n", "import androidx.compose.foundation.border\nimport androidx.compose.foundation.clickable\n", 1)
+          h = h.replace(
+              "                    modifier = Modifier\n                        .align(Alignment.Center)\n                        .padding(start = 270.dp, end = 30.dp),",
+              "                    modifier = Modifier\n                        .align(Alignment.Center)\n                        .padding(start = 270.dp, end = 30.dp),\n                    itemCount = candidates.size,",
+              1,
+          )
+          h = h.replace(
+              "    onPlay: (MediaItem) -> Unit,\n    modifier: Modifier = Modifier,",
+              "    onPlay: (MediaItem) -> Unit,\n    itemCount: Int,\n    modifier: Modifier = Modifier,",
+              1,
+          )
+          h = h.replace(
+              "onSelected((selectedIndex + offset).floorMod(18))",
+              "onSelected((selectedIndex + offset).floorMod(itemCount))",
+              1,
+          )
+          home.write_text(h)
+
+          # Remove this one-shot workflow from the resulting branch; the build
+          # workflow that already exists in the repository remains untouched.
+          wf = Path(".github/workflows/apply-home-reference.yml")
+          wf.unlink()
+      - name: Commit and push patched sources
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt app/src/main/java/com/aeriotv/android/feature/main/AerioHomeScreen.kt .github/workflows/apply-home-reference.yml
+          git commit -m "feat: integrate reference-matched TV home"
+          git push origin HEAD:ui/reference-home-2026-09-26
