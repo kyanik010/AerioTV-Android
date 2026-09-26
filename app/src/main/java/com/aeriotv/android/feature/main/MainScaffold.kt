@@ -1933,7 +1933,6 @@ private fun TvTopTabBar(
      *  is not where the bar visually ends; the corner mini needs the real one. */
     onDrawnBottomChanged: (Float) -> Unit = {},
 ) {
-    return
     // Selection-follows-focus, but committed ONLY for focus moves BETWEEN pills
     // (real D-pad traversal of the bar), never for focus ENTERING the bar from
     // outside. That entry case is exactly how the focus fallback used to bounce
