@@ -47,6 +47,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -2714,10 +2716,11 @@ private fun ReferenceAppShell(
     modifier: Modifier = Modifier,
 ) {
     val navFocus = remember { List(5) { FocusRequester() } }
+    val language = LocalAppLanguage.current
     val primaryTabs = listOf(
         AppTab.LiveTV to Icons.Filled.Tv,
-        AppTab.Movies to Icons.Filled.FiberSmartRecord,
-        AppTab.TVShows to Icons.Filled.Tv,
+        AppTab.Movies to Icons.Outlined.Movie,
+        AppTab.TVShows to Icons.Outlined.PlayCircleOutline,
         AppTab.Favorites to Icons.Outlined.FavoriteBorder,
         AppTab.Settings to Icons.Outlined.Settings,
     )
@@ -2735,11 +2738,11 @@ private fun ReferenceAppShell(
                     ReferenceRailItem(
                         icon = icon,
                         label = when (tab) {
-                            AppTab.LiveTV -> "القنوات"
-                            AppTab.Movies -> "الأفلام"
-                            AppTab.TVShows -> "المسلسلات"
-                            AppTab.Favorites -> "المفضلة"
-                            else -> "الإعدادات"
+                            AppTab.LiveTV -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) "Channels" else "القنوات"
+                            AppTab.Movies -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) "Movies" else "الأفلام"
+                            AppTab.TVShows -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) "Series" else "المسلسلات"
+                            AppTab.Favorites -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) "Favorites" else "المفضلة"
+                            else -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) "Settings" else "الإعدادات"
                         },
                         selected = selectedTab == tab,
                         focusRequester = navFocus[index],
