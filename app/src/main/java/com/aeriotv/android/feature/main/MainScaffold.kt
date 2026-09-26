@@ -413,7 +413,7 @@ fun MainScaffold(
         if (seriesDenied) stickyTabs -= AppTab.TVShows
         if (moviesDenied && seriesDenied) stickyTabs -= AppTab.OnDemand
         visibleTabs(
-            includeHome = isTvShell,
+            includeHome = true,
             hasFavorites = AppTab.Favorites in stickyTabs,
             hasVod = AppTab.OnDemand in stickyTabs,
             hasRecordings = AppTab.DVR in stickyTabs,
