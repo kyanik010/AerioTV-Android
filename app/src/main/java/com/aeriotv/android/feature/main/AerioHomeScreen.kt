@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,7 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -48,9 +47,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -190,16 +188,29 @@ private fun HomeNavigation(
                     .border(
                         1.dp,
                         Color.White.copy(alpha = if (focused) 0.32f else 0.13f),
-                        RoundedCornerShape(16.dp),
+                        RoundedCornerShape(12.dp),
                     )
-                    .graphicsLayer { scaleX = if (focused) 1.03f else 1f; scaleY = if (focused) 1.03f else 1f }
+                    .graphicsLayer {
+                        scaleX = if (focused) 1.03f else 1f
+                        scaleY = if (focused) 1.03f else 1f
+                    }
                     .height(56.dp)
                     .padding(horizontal = 18.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
                     Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                }
+                if (focused) {
+                    Box(
+                        Modifier
+                            .align(Alignment.CenterStart)
+                            .width(3.dp)
+                            .height(24.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(HomeAccent.copy(alpha = .90f))
+                    )
                 }
             }
         }
@@ -224,67 +235,94 @@ private fun PosterCarousel(
         return
     }
     val requesters = remember(items.map { it.first.key }) { items.map { FocusRequester() } }
-    Row(
-        modifier = modifier
-            .fillMaxHeight()
-            .focusGroup(),
-        horizontalArrangement = Arrangement.spacedBy((-18).dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        items.forEachIndexed { visibleIndex, (item, offset) ->
-            val distance = abs(offset)
-            val scale = when (distance) { 0 -> 1f; 1 -> .78f; else -> .65f }
-            val alpha = when (distance) { 0 -> 1f; 1 -> .61f; else -> .42f }
-            val rotation = when { offset < 0 -> -7f * distance; offset > 0 -> 7f * distance; else -> 0f }
-            val requester = requesters[visibleIndex]
-            Box(
-                modifier = Modifier
-                    .width(232.dp)
-                    .height(332.dp)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        rotationZ = rotation
-                        this.alpha = alpha
-                        shadowElevation = if (distance == 0) 28.dp.toPx() else 8.dp.toPx()
-                        shape = RoundedCornerShape(16.dp)
-                        clip = true
-                    }
-                    .focusRequester(requester)
-                    .focusProperties {
-                        if (visibleIndex > 0) left = requesters[visibleIndex - 1]
-                        if (visibleIndex < items.lastIndex) right = requesters[visibleIndex + 1]
-                        up = navFocus
-                    }
-                    .onFocusChanged { if (it.isFocused) onSelected((selectedIndex + offset).floorMod(itemCount)) }
-                    .clickable { onPlay(item) }
-                    .focusable()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF172131))
-                    .border(1.dp, Color.White.copy(alpha = if (distance == 0) .20f else .06f), RoundedCornerShape(16.dp))
-                    .then(if (distance == 0) Modifier.focusRequester(centerFocus) else Modifier),
-            ) {
-                AsyncImage(
-                    model = item.posterUrl,
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+    Box(modifier = modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.matchParentSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(HomeAccent.copy(alpha = .10f), Color.Transparent),
+                    center = Offset(size.width * .50f, size.height * .50f),
+                    radius = size.height * .52f,
+                ),
+                radius = size.height * .52f,
+                center = Offset(size.width * .50f, size.height * .50f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().focusGroup(),
+            horizontalArrangement = Arrangement.spacedBy((-18).dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEachIndexed { visibleIndex, (item, offset) ->
+                val distance = abs(offset)
+                val scale = when (distance) { 0 -> 1f; 1 -> .78f; else -> .65f }
+                val alpha = when (distance) { 0 -> 1f; 1 -> .61f; else -> .42f }
+                val rotation = when {
+                    offset < 0 -> -7f * distance
+                    offset > 0 -> 7f * distance
+                    else -> 0f
+                }
+                val requester = requesters[visibleIndex]
                 Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .24f), Color.Black.copy(alpha = .64f)))
+                    modifier = Modifier
+                        .width(232.dp)
+                        .height(332.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            rotationZ = rotation
+                            this.alpha = alpha
+                            shadowElevation = if (distance == 0) 28.dp.toPx() else 8.dp.toPx()
+                            shape = RoundedCornerShape(14.dp)
+                            clip = true
+                        }
+                        .focusRequester(requester)
+                        .focusProperties {
+                            if (visibleIndex > 0) left = requesters[visibleIndex - 1]
+                            if (visibleIndex < items.lastIndex) right = requesters[visibleIndex + 1]
+                            up = navFocus
+                        }
+                        .onFocusChanged {
+                            if (it.isFocused) onSelected((selectedIndex + offset).floorMod(itemCount))
+                        }
+                        .clickable { onPlay(item) }
+                        .focusable()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF172131))
+                        .border(
+                            1.dp,
+                            Color.White.copy(alpha = if (distance == 0) .20f else .06f),
+                            RoundedCornerShape(14.dp),
+                        )
+                        .then(if (distance == 0) Modifier.focusRequester(centerFocus) else Modifier),
+                ) {
+                    AsyncImage(
+                        model = item.posterUrl,
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
                     )
-                )
-                if (distance == 0) {
-                    Text(
-                        item.title,
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 18.dp),
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                    Box(
+                        Modifier.fillMaxSize().background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = .24f),
+                                    Color.Black.copy(alpha = .64f)
+                                )
+                            )
+                        )
                     )
+                    if (distance == 0) {
+                        Text(
+                            item.title,
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 18.dp),
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -356,29 +394,55 @@ private fun HomeAccountSection(
 private fun CinematicHomeBackground() {
     Canvas(Modifier.fillMaxSize()) {
         drawRect(Brush.verticalGradient(listOf(HomeBackgroundTop, HomeBackgroundBottom)))
-        val glow = Brush.radialGradient(
-            colors = listOf(HomeAccent.copy(alpha = .11f), Color.Transparent),
-            center = Offset(size.width * .76f, size.height * .18f),
+
+        val upperGlow = Brush.radialGradient(
+            colors = listOf(HomeAccent.copy(alpha = .095f), Color.Transparent),
+            center = Offset(size.width * .83f, size.height * .14f),
+            radius = size.width * .34f,
+        )
+        drawRect(upperGlow)
+
+        val centerGlow = Brush.radialGradient(
+            colors = listOf(Color.White.copy(alpha = .035f), Color.Transparent),
+            center = Offset(size.width * .55f, size.height * .39f),
             radius = size.width * .30f,
         )
-        drawRect(glow)
+        drawRect(centerGlow)
+
         val random = Random(2209)
-        repeat(120) {
+        repeat(135) {
             val x = random.nextFloat() * size.width
-            val y = random.nextFloat() * size.height * .67f
-            val r = random.nextFloat() * 1.5f + .35f
-            drawCircle(Color.White.copy(alpha = random.nextFloat() * .12f), r, Offset(x, y))
+            val y = random.nextFloat() * size.height * .69f
+            val r = random.nextFloat() * 1.35f + .25f
+            drawCircle(Color.White.copy(alpha = random.nextFloat() * .095f), r, Offset(x, y))
         }
+
         val path = Path().apply {
-            moveTo(size.width * .67f, size.height * .02f)
-            cubicTo(size.width * .86f, size.height * .12f, size.width * .91f, size.height * .24f, size.width * .98f, size.height * .40f)
+            moveTo(size.width * .62f, size.height * .015f)
+            cubicTo(
+                size.width * .78f, size.height * .09f,
+                size.width * .89f, size.height * .22f,
+                size.width * 1.01f, size.height * .40f
+            )
         }
-        drawPath(path, Color.White.copy(alpha = .08f), style = Stroke(width = 1.2f))
+        drawPath(path, Color.White.copy(alpha = .055f), style = Stroke(width = 1.2f))
+
         val path2 = Path().apply {
-            moveTo(size.width * .69f, size.height * .03f)
-            cubicTo(size.width * .82f, size.height * .18f, size.width * .92f, size.height * .30f, size.width * 1.02f, size.height * .48f)
+            moveTo(size.width * .66f, size.height * .02f)
+            cubicTo(
+                size.width * .83f, size.height * .14f,
+                size.width * .93f, size.height * .29f,
+                size.width * 1.03f, size.height * .49f
+            )
         }
-        drawPath(path2, HomeAccent.copy(alpha = .10f), style = Stroke(width = 2f))
+        drawPath(path2, HomeAccent.copy(alpha = .075f), style = Stroke(width = 1.6f))
+
+        val vignette = Brush.radialGradient(
+            colors = listOf(Color.Transparent, Color.Black.copy(alpha = .22f)),
+            center = Offset(size.width * .50f, size.height * .39f),
+            radius = size.width * .75f,
+        )
+        drawRect(vignette)
     }
 }
 
