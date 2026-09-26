@@ -389,15 +389,15 @@ fun MainScaffold(
     val stickyTabs = remember(capsPlaylist?.id ?: state.playlist?.id) { mutableSetOf<AppTab>() }
     val tabs = run {
         val live = visibleTabs(
-            includeHome = isTvShell,
+            includeHome = true,
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
-            hasFavorites = false,
+            hasFavorites = true,
             hasVod = hasVodContent,
             hasRecordings = hasRecordings,
             splitVod = splitVod,
-            hasMovies = hasMoviesContent,
-            hasSeries = hasSeriesContent,
+            hasMovies = true,
+            hasSeries = true,
         )
         stickyTabs += live
         stickyTabs -= AppTab.Favorites
@@ -964,7 +964,7 @@ fun MainScaffold(
                 // initial focus it decides) is exactly what it was when the
                 // bar was the Column's first child; zIndex keeps it painted
                 // above the content it now overlaps.
-                Box(
+                if (selectedTab != AppTab.Home) Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .fillMaxWidth()
@@ -1018,7 +1018,7 @@ fun MainScaffold(
                         // measured height plus the hint band. It never changes
                         // while the bar collapses, so no tab (guide, Settings,
                         // media pages) sees its viewport resize mid-scroll.
-                        .padding(top = barInset + topHintGap)
+                         .padding(top = if (selectedTab == AppTab.Home) 0.dp else barInset + topHintGap)
                         // UP leaving the tab content must land on the SELECTED
                         // tab's pill. Geometric 2D search used to hit whichever
                         // pill sat above the focused column (On Demand over the
@@ -1193,7 +1193,7 @@ fun MainScaffold(
           LocalTabBarBottomInset provides if (topTabBar) 16.dp else 96.dp + navBarInset,
       ) {
       androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-        if (topTabBar) {
+        if (topTabBar && selectedTab != AppTab.Home) {
             // Keeps the phone floating mini's top corners below this bar.
             androidx.compose.runtime.DisposableEffect(Unit) {
                 onDispose {
@@ -1228,7 +1228,7 @@ fun MainScaffold(
                 .then(
                     // The bar above already applied the status-bar inset; without
                     // consuming it here every tab's TopAppBar would add it again.
-                    if (topTabBar) {
+                    if (topTabBar && selectedTab != AppTab.Home) {
                         Modifier.consumeWindowInsets(WindowInsets.statusBars)
                     } else Modifier,
                 )
@@ -1397,7 +1397,7 @@ fun MainScaffold(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                if (!topTabBar) {
+                if (!topTabBar && selectedTab != AppTab.Home) {
                     // iOS 26 parity (Logan 2026-09-09): scrolling down does not
                     // hide the bar, it MINIMIZES it to a small pill in the
                     // bottom-left corner showing the active tab's icon. Tapping
