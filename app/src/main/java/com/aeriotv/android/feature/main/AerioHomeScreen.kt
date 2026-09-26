@@ -3,6 +3,7 @@ package com.aeriotv.android.feature.main
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -140,6 +141,7 @@ fun AerioHomeScreen(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .padding(start = 270.dp, end = 30.dp),
+                    itemCount = candidates.size,
                 )
             }
             HomeAccountSection(
@@ -210,6 +212,7 @@ private fun PosterCarousel(
     centerFocus: FocusRequester,
     navFocus: FocusRequester,
     onPlay: (MediaItem) -> Unit,
+    itemCount: Int,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) {
@@ -251,7 +254,7 @@ private fun PosterCarousel(
                         if (visibleIndex < items.lastIndex) right = requesters[visibleIndex + 1]
                         up = navFocus
                     }
-                    .onFocusChanged { if (it.isFocused) onSelected((selectedIndex + offset).floorMod(18)) }
+                    .onFocusChanged { if (it.isFocused) onSelected((selectedIndex + offset).floorMod(itemCount)) }
                     .focusable()
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFF172131))

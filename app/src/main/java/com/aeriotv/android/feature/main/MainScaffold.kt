@@ -389,6 +389,7 @@ fun MainScaffold(
     val stickyTabs = remember(capsPlaylist?.id ?: state.playlist?.id) { mutableSetOf<AppTab>() }
     val tabs = run {
         val live = visibleTabs(
+            includeHome = isTvShell,
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
             hasFavorites = false,
@@ -413,6 +414,7 @@ fun MainScaffold(
         if (seriesDenied) stickyTabs -= AppTab.TVShows
         if (moviesDenied && seriesDenied) stickyTabs -= AppTab.OnDemand
         visibleTabs(
+            includeHome = isTvShell,
             hasFavorites = AppTab.Favorites in stickyTabs,
             hasVod = AppTab.OnDemand in stickyTabs,
             hasRecordings = AppTab.DVR in stickyTabs,
@@ -526,7 +528,7 @@ fun MainScaffold(
     val settingsVm: SettingsViewModel = hiltViewModel()
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var initialTabApplied by rememberSaveable { mutableStateOf(false) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
@@ -633,7 +635,7 @@ fun MainScaffold(
     // priority there; this only fires on a tab root.
     val homeTab = AppTab.entries.firstOrNull { it.name == defaultTabPref }
         ?.let { if (it == AppTab.OnDemand && splitVod) AppTab.Movies else it }
-        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.LiveTV
+        ?.takeIf { it in tabs && it != AppTab.Search } ?: if (AppTab.Home in tabs) AppTab.Home else AppTab.LiveTV
     // TV: the leaving tab's content nodes vanish, and Compose's fallback
     // hands focus to the LEFTMOST pill (Live TV) while the home tab is
     // selected (Logan 2026-09-02 screenshot). Ask for the home pill instead;
@@ -866,7 +868,7 @@ fun MainScaffold(
             val barInset = if (barHeightPx > 0) {
                 with(chromeDensity) { barHeightPx.toDp() }
             } else {
-                62.dp
+                0.dp
             }
             // The corner mini player is mounted at the ACTIVITY root, outside
             // this composition, so it cannot read a CompositionLocal from
@@ -877,7 +879,7 @@ fun MainScaffold(
             val barDrawnBottom = if (barDrawnBottomPx > 0f) {
                 with(chromeDensity) { barDrawnBottomPx.toDp() }
             } else {
-                barInset - 12.dp
+                0.dp
             }
             androidx.compose.runtime.LaunchedEffect(barDrawnBottom) {
                 com.aeriotv.android.feature.player.MiniPlayerChrome
@@ -1754,6 +1756,13 @@ private fun MainTabContent(
     val keepAliveTabs = tabs.filter { it in visited }
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
+            AppTab.Home -> {
+                AerioHomeScreen(
+                    playlistViewModel = viewModel,
+                    onSelectTab = onSelectTab,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
@@ -1902,6 +1911,7 @@ private fun TvTopTabBar(
      *  is not where the bar visually ends; the corner mini needs the real one. */
     onDrawnBottomChanged: (Float) -> Unit = {},
 ) {
+    return
     // Selection-follows-focus, but committed ONLY for focus moves BETWEEN pills
     // (real D-pad traversal of the bar), never for focus ENTERING the bar from
     // outside. That entry case is exactly how the focus fallback used to bounce
@@ -2662,6 +2672,7 @@ private fun SettingsTabContent(
  * recordings, surfaces only Live TV + Settings - empty tabs never appear.
  */
 internal fun visibleTabs(
+    includeHome: Boolean = false,
     hasFavorites: Boolean = false,
     hasVod: Boolean = false,
     hasRecordings: Boolean = false,
@@ -2670,6 +2681,7 @@ internal fun visibleTabs(
     hasMovies: Boolean = hasVod,
     hasSeries: Boolean = hasVod,
 ): List<AppTab> = buildList {
+    if (includeHome) add(AppTab.Home)
     add(AppTab.LiveTV)
     if (hasFavorites) add(AppTab.Favorites)
     if (hasRecordings) add(AppTab.DVR)
