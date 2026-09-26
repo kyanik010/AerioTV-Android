@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -63,10 +64,6 @@ import com.aeriotv.android.feature.ondemand.OnDemandViewModel
 import com.aeriotv.android.feature.movies.MediaItem
 import com.aeriotv.android.feature.playlist.PlaylistViewModel
 import kotlinx.coroutines.delay
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -112,14 +109,16 @@ fun AerioHomeScreen(
     val centerPosterFocus = remember { FocusRequester() }
     val navFocus = remember { List(5) { FocusRequester() } }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val designScale = (minOf(maxWidth.value / 1920f, maxHeight.value / 1080f) * 1.8f)
+            .coerceIn(0.62f, 1f)
         CinematicHomeBackground()
         Column(Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.68f)
-                    .padding(horizontal = 56.dp, vertical = 36.dp),
+                    .padding(horizontal = (56f * designScale).dp, vertical = (36f * designScale).dp),
             ) {
                 HomeNavigation(
                     language = language,
@@ -127,7 +126,11 @@ fun AerioHomeScreen(
                     onSelectTab = onSelectTab,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        .focusGroup(),
+                        .focusGroup()
+                        .graphicsLayer {
+                            scaleX = designScale
+                            scaleY = designScale
+                        },
                     downTarget = centerPosterFocus,
                 )
                 PosterCarousel(
@@ -144,7 +147,7 @@ fun AerioHomeScreen(
                     },
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(start = 250.dp, end = 30.dp),
+                        .padding(start = (250f * designScale).dp, end = (30f * designScale).dp),
                     itemCount = candidates.size,
                 )
             }
@@ -154,7 +157,11 @@ fun AerioHomeScreen(
                 language = language,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.32f),
+                    .weight(0.32f)
+                    .graphicsLayer {
+                        scaleX = designScale
+                        scaleY = designScale
+                    },
             )
         }
     }
@@ -459,7 +466,7 @@ private fun Int.floorMod(size: Int): Int {
 
 
 private fun formatSystemClock(): String {
-    val zone = ZoneId.systemDefault()
-    val now = ZonedDateTime.now(zone)
-    return DateTimeFormatter.ofPattern("hh:mm a", Locale.US).format(now)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val formatter = android.text.format.DateFormat.getTimeFormat(context)
+    return formatter.format(java.util.Date())
 }
