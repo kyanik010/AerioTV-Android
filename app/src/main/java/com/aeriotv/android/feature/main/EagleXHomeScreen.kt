@@ -461,18 +461,12 @@ private fun CinematicHomeBackground(
         )
 
         // 2. Very soft ambient cyan in the upper-right corner.
-        drawCircle(
+        drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(
-                    HomeAccent.copy(alpha = 0.070f),
-                    HomeAccent.copy(alpha = 0.026f),
-                    Color.Transparent,
-                ),
+                colors = listOf(HomeAccent.copy(alpha = 0.070f), HomeAccent.copy(alpha = 0.026f), Color.Transparent),
                 center = Offset(w * 0.91f, h * 0.06f),
                 radius = min * 0.52f,
             ),
-            radius = min * 0.52f,
-            center = Offset(w * 0.91f, h * 0.06f),
         )
 
         // 3. Hero ambient light. Its horizontal position follows the active
@@ -495,8 +489,6 @@ private fun CinematicHomeBackground(
                 center = Offset(heroX, h * 0.47f),
                 radius = min * 0.43f,
             ),
-            radius = min * 0.43f,
-            center = Offset(heroX, h * 0.47f),
         )
 
         // 4. Additional neutral depth behind the content boundary.
