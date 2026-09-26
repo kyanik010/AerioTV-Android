@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -83,6 +84,7 @@ fun AerioHomeScreen(
     val movies by onDemandVm.library(true).collectAsState()
     val series by onDemandVm.library(false).collectAsState()
     val language = LocalAppLanguage.current
+    val context = LocalContext.current
 
     val candidates = remember(movies.items.size, series.items.size) {
         (movies.items + series.items)
@@ -92,12 +94,12 @@ fun AerioHomeScreen(
             .take(18)
     }
     var selectedIndex by remember { mutableIntStateOf(0) }
-    var clock by remember { mutableStateOf(formatSystemClock()) }
-    LaunchedEffect(Unit) {
+    var clock by remember { mutableStateOf(formatSystemClock(context)) }
+    LaunchedEffect(context) {
         while (true) {
             // Read the device/system timezone on every tick so a timezone change
             // while the app is running is reflected automatically.
-            clock = formatSystemClock()
+            clock = formatSystemClock(context)
             delay(1_000L)
         }
     }
@@ -465,9 +467,7 @@ private fun Int.floorMod(size: Int): Int {
 }
 
 
-@Composable
-private fun formatSystemClock(): String {
-    val context = androidx.compose.ui.platform.LocalContext.current
+private fun formatSystemClock(context: android.content.Context): String {
     val formatter = android.text.format.DateFormat.getTimeFormat(context)
     return formatter.format(java.util.Date())
 }
