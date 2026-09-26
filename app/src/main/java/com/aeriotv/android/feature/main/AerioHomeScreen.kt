@@ -465,6 +465,7 @@ private fun Int.floorMod(size: Int): Int {
 }
 
 
+@Composable
 private fun formatSystemClock(): String {
     val context = androidx.compose.ui.platform.LocalContext.current
     val formatter = android.text.format.DateFormat.getTimeFormat(context)
