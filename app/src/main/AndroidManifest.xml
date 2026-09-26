@@ -70,8 +70,9 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|density"
-            android:resizeableActivity="true"
+            android:resizeableActivity="false"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.AerioTV">
             <intent-filter>
