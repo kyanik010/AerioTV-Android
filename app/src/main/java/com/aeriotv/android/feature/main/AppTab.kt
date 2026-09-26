@@ -2,6 +2,7 @@ package com.aeriotv.android.feature.main
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.outlined.Movie
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LiveTv
 import androidx.compose.material.icons.outlined.OndemandVideo
 import androidx.compose.material.icons.outlined.Search
@@ -27,6 +29,7 @@ enum class AppTab(
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
 ) {
+    Home("home", "Home", Icons.Filled.Home, Icons.Outlined.Home),
     LiveTV("livetv", "Live TV", Icons.Filled.LiveTv, Icons.Outlined.LiveTv),
     Favorites("favorites", "Favorites", Icons.Filled.Favorite, Icons.Outlined.Favorite),
     DVR("dvr", "DVR", Icons.Filled.RadioButtonChecked, Icons.Outlined.RadioButtonChecked),
@@ -39,9 +42,9 @@ enum class AppTab(
     Search("search", "Search", Icons.Filled.Search, Icons.Outlined.Search),
 }
 
-
 fun AppTab.localizedLabel(language: com.aeriotv.android.core.preferences.AppLanguage): String =
     if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) label else when (this) {
+        AppTab.Home -> "الرئيسية"
         AppTab.LiveTV -> "التلفزيون المباشر"
         AppTab.Favorites -> "المفضلة"
         AppTab.DVR -> "التسجيلات"
