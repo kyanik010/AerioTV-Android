@@ -436,12 +436,6 @@ fun MainScaffold(
                 "loading=${onDemandState.isLoadingSeries} -> show=$hasSeriesContent | tabs=$tabs",
         )
     }
-    val activationStore = remember {
-        dagger.hilt.android.EntryPointAccessors.fromApplication(
-            androidx.compose.ui.platform.LocalContext.current.applicationContext,
-            MainScaffoldEntryPoint::class.java,
-        ).activationConfigStore()
-    }
     val miniPlayerVm: MiniPlayerViewModel = hiltViewModel()
     val miniPlayerState by miniPlayerVm.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
