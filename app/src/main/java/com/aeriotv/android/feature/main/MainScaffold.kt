@@ -527,8 +527,12 @@ fun MainScaffold(
     val settingsVm: SettingsViewModel = hiltViewModel()
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
-    var initialTabApplied by rememberSaveable { mutableStateOf(false) }
+    // Home is a deliberate fixed launch surface for the reference design.
+    // Do not save/restore the previous content tab across Activity recreation:
+    // restoring Live TV/Movies here was the reason users kept seeing the legacy
+    // shell even though AerioHomeScreen existed and compiled successfully.
+    var selectedTab by remember { mutableStateOf(AppTab.Home) }
+    var initialTabApplied by rememberSaveable { mutableStateOf(true) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
     // ALREADY built is free, so it must commit on the same frame as the pill
@@ -539,30 +543,9 @@ fun MainScaffold(
         restore = { names -> names.mapNotNull { n -> AppTab.entries.firstOrNull { it.name == n } }.toMutableStateList() },
     )) { mutableStateListOf<AppTab>() }
 
-    // Honour the saved defaultTab once its tab is actually available. On Demand /
-    // DVR now materialise a beat after launch (their content loads async), so we
-    // must NOT latch on the empty initial pref or while the target tab is still
-    // missing - otherwise a "default = On Demand" preference would be dropped on
-    // the floor before the tab appeared. We latch only when the target is applied;
-    // a manual tab tap also latches (see onSelect / NavigationBarItem onClick) so
-    // the default never overrides a deliberate user choice. Empty pref = Live TV
-    // (already the initial selection), so there's nothing to apply.
-    LaunchedEffect(defaultTabPref, tabs) {
-        if (initialTabApplied || defaultTabPref.isEmpty()) return@LaunchedEffect
-        // A default saved as On Demand opens Movies where the tab was split.
-        val target = AppTab.entries.firstOrNull { it.name == defaultTabPref }
-            ?.let { if (it == AppTab.OnDemand && splitVod) AppTab.Movies else it }
-            ?.let { if (it == AppTab.Favorites && splitVod) AppTab.LiveTV else it }
-        when {
-            target == null -> initialTabApplied = true
-            target in tabs -> {
-                selectedTab = target
-                initialTabApplied = true
-            }
-            // else: target tab not present yet (content still loading); keep
-            // waiting - this effect re-fires when `tabs` changes.
-        }
-    }
+    // Launch is always Home. The Settings "default tab" preference is not
+    // allowed to replace the reference landing screen. Explicit navigation,
+    // deep links, and player events may still change selectedTab after launch.
 
     // If the currently-selected tab disappears (e.g. user clears playlist, sourceType
     // changes), fall back to Live TV.
