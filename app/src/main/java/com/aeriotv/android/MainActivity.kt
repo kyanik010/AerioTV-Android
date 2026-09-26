@@ -856,9 +856,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         // AerioTV is a landscape-only experience on both Android TV and phones/tablets.
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        super.onCreate(savedInstanceState)
         // GH#40 rate match: the seamless matcher reports the content rate
         // class; pick a same-size display mode at that rate when needed.
         com.aeriotv.android.feature.player.DisplayFrameRateMatcher.onRateRequested = { rate ->
@@ -878,19 +878,12 @@ class MainActivity : ComponentActivity() {
         // orientation. TVs never rotate - skip entirely. The player's
         // forced-landscape toggle overrides this while engaged and restores
         // through AutoRotateState.restingOrientation.
-        if (!isTelevisionDevice()) {
-            lifecycleScope.launch {
-                appPreferences.autoRotate.collect { enabled ->
-                    com.aeriotv.android.core.preferences.AutoRotateState.enabled = enabled
-                    val forcedLandscape = requestedOrientation ==
-                        android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
-                    if (!forcedLandscape) {
-                        requestedOrientation =
-                            com.aeriotv.android.core.preferences.AutoRotateState.restingOrientation
-                    }
-                }
-            }
-        }
+        // Orientation is intentionally locked to landscape for the entire app.
+        // The previous phone auto-rotate collector could restore portrait after
+        // startup and bypass the reference 16:9 layout.
+        com.aeriotv.android.core.preferences.AutoRotateState.enabled = false
+        com.aeriotv.android.core.preferences.AutoRotateState.restingOrientation =
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         // GH #38: one-shot startup refresh-rate pin (first emitted value only -
         // changing the setting later applies on next launch, avoiding a live
         // HDMI re-handshake underneath a playing stream).
