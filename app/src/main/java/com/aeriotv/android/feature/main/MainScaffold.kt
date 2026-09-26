@@ -391,7 +391,7 @@ fun MainScaffold(
         val live = visibleTabs(
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
-            hasFavorites = false,
+            hasFavorites = true,
             hasVod = hasVodContent,
             hasRecordings = hasRecordings,
             splitVod = splitVod,
@@ -436,6 +436,13 @@ fun MainScaffold(
                 "loading=${onDemandState.isLoadingSeries} -> show=$hasSeriesContent | tabs=$tabs",
         )
     }
+    val activationStore = remember {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            MainScaffoldEntryPoint::class.java,
+        ).activationConfigStore()
+    }
+    val activationConfig by activationStore.config.collectAsStateWithLifecycle()
     val miniPlayerVm: MiniPlayerViewModel = hiltViewModel()
     val miniPlayerState by miniPlayerVm.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -526,7 +533,7 @@ fun MainScaffold(
     val settingsVm: SettingsViewModel = hiltViewModel()
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var initialTabApplied by rememberSaveable { mutableStateOf(false) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
@@ -633,7 +640,7 @@ fun MainScaffold(
     // priority there; this only fires on a tab root.
     val homeTab = AppTab.entries.firstOrNull { it.name == defaultTabPref }
         ?.let { if (it == AppTab.OnDemand && splitVod) AppTab.Movies else it }
-        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.LiveTV
+        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.Home
     // TV: the leaving tab's content nodes vanish, and Compose's fallback
     // hands focus to the LEFTMOST pill (Live TV) while the home tab is
     // selected (Logan 2026-09-02 screenshot). Ask for the home pill instead;
@@ -1188,10 +1195,10 @@ fun MainScaffold(
       val navBarInset = WindowInsets.navigationBars.asPaddingValues()
           .calculateBottomPadding()
       androidx.compose.runtime.CompositionLocalProvider(
-          LocalTabBarBottomInset provides if (topTabBar) 16.dp else 96.dp + navBarInset,
+          LocalTabBarBottomInset provides if (selectedTab == AppTab.Home) 0.dp else if (topTabBar) 16.dp else 96.dp + navBarInset,
       ) {
       androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-        if (topTabBar) {
+        if (topTabBar && selectedTab != AppTab.Home) {
             // Keeps the phone floating mini's top corners below this bar.
             androidx.compose.runtime.DisposableEffect(Unit) {
                 onDispose {
@@ -1253,6 +1260,7 @@ fun MainScaffold(
                 onSelectTab = { selectedTab = it; initialTabApplied = true },
                 viewModel = viewModel,
                 visited = visitedTabs,
+                accountExpiry = activationConfig?.expiresAt,
                 modifier = Modifier.fillMaxSize(),
             )
             // No "Syncing" pill on phone: it sat on top of the Live TV
@@ -1395,7 +1403,7 @@ fun MainScaffold(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                if (!topTabBar) {
+                if (!topTabBar && selectedTab != AppTab.Home) {
                     // iOS 26 parity (Logan 2026-09-09): scrolling down does not
                     // hide the bar, it MINIMIZES it to a small pill in the
                     // bottom-left corner showing the active tab's icon. Tapping
@@ -1726,6 +1734,7 @@ private fun MainTabContent(
     onWatchLive: (String, String, Boolean, Long, Int?) -> Unit,
     onWatchFromBeginning: (String, String, Boolean, Long, Int?, Boolean) -> Unit,
     onOpenSearch: () -> Unit = {},
+    accountExpiry: String? = null,
     // Lets a tab's own content change the selected tab (the TV Search tab's
     // Back returns to Live TV). Latches initialTabApplied at the call sites,
     // same as a manual pill press.
@@ -1754,6 +1763,17 @@ private fun MainTabContent(
     val keepAliveTabs = tabs.filter { it in visited }
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
+            AppTab.Home -> {
+                val onDemandVm: OnDemandViewModel = hiltViewModel()
+                EagleXHomeScreen(
+                    onSelectTab = onSelectTab,
+                    onPlayMovie = onPlayMovie,
+                    onPlaySeries = onSeriesClick,
+                    username = viewModel.state.value.playlist?.username,
+                    expiresAt = accountExpiry,
+                    viewModel = onDemandVm,
+                )
+            }
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
@@ -2670,6 +2690,7 @@ internal fun visibleTabs(
     hasMovies: Boolean = hasVod,
     hasSeries: Boolean = hasVod,
 ): List<AppTab> = buildList {
+    add(AppTab.Home)
     add(AppTab.LiveTV)
     if (hasFavorites) add(AppTab.Favorites)
     if (hasRecordings) add(AppTab.DVR)
@@ -2697,6 +2718,7 @@ interface MainScaffoldEntryPoint {
     fun exoWindowState(): com.aeriotv.android.feature.player.ExoWindowState
     fun castSender(): com.aeriotv.android.core.cast.AerioCastSender
     fun companionRemote(): com.aeriotv.android.core.cast.companion.CompanionRemoteController
+    fun activationConfigStore(): com.aeriotv.android.feature.activation.ActivationConfigStore
     fun companionDiscovery(): com.aeriotv.android.core.cast.companion.CompanionDiscovery
 }
 
