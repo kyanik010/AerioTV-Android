@@ -882,8 +882,6 @@ class MainActivity : ComponentActivity() {
         // The previous phone auto-rotate collector could restore portrait after
         // startup and bypass the reference 16:9 layout.
         com.aeriotv.android.core.preferences.AutoRotateState.enabled = false
-        com.aeriotv.android.core.preferences.AutoRotateState.restingOrientation =
-            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         // GH #38: one-shot startup refresh-rate pin (first emitted value only -
         // changing the setting later applies on next launch, avoiding a live
         // HDMI re-handshake underneath a playing stream).
