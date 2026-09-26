@@ -445,6 +445,8 @@ fun MainScaffold(
     val miniPlayerVm: MiniPlayerViewModel = hiltViewModel()
     val miniPlayerState by miniPlayerVm.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
+    val activationStore = remember { dagger.hilt.android.EntryPointAccessors.fromApplication(context.applicationContext, MainScaffoldEntryPoint::class.java).activationConfigStore() }
+    val activationConfig by activationStore.config.collectAsStateWithLifecycle()
     val exoHolder = remember {
         dagger.hilt.android.EntryPointAccessors.fromApplication(
             context.applicationContext,
