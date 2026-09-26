@@ -364,7 +364,6 @@ private fun HomeCarousel(
                                             HomeAccent.copy(alpha = 0.08f),
                                             Color.Transparent,
                                         ),
-                                        center = Offset(116.dp.toPx(), 166.dp.toPx()),
                                     )
                                 )
                         )
