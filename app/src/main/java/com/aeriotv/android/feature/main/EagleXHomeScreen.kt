@@ -48,6 +48,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -357,7 +358,7 @@ private fun HomeCarousel(
                                             HomeAccent.copy(alpha = 0.08f),
                                             Color.Transparent,
                                         ),
-                                        center = Offset.Unspecified,
+                                        center = Offset(width / 2f, height / 2f),
                                     )
                                 )
                         )
