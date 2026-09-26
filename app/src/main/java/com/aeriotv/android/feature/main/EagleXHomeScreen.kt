@@ -95,6 +95,9 @@ fun EagleXHomeScreen(
 
     var selectedIndex by remember { mutableIntStateOf(2.coerceAtMost((media.size - 1).coerceAtLeast(0))) }
     val hero = media.getOrNull(selectedIndex)
+    LaunchedEffect(media.size) {
+        if (media.isNotEmpty()) selectedIndex = 2.coerceAtMost(media.lastIndex)
+    }
 
     Box(
         modifier = Modifier
@@ -259,6 +262,7 @@ private fun HomeNavButton(
             .clickable(onClick = onClick)
             .focusable()
             .onFocusChanged { focused = it.isFocused }
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .drawWithCache {
                 onDrawWithContent {
                     drawContent()
@@ -331,6 +335,8 @@ private fun HomeCarousel(
                             this.alpha = alpha
                             this.scaleX = scale
                             this.scaleY = scale
+                            this.rotationY = if (index < selectedIndex) 4f else if (index > selectedIndex) -4f else 0f
+                            this.cameraDistance = 18f
                         }
                         .clip(RoundedCornerShape(14.dp))
                         .border(
