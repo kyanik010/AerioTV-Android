@@ -93,7 +93,7 @@ fun AudioSourceSheet(
                 Text("القنوات الصوتية", style = MaterialTheme.typography.titleSmall)
                 if (channels.isEmpty()) {
                     Text(
-                        "لا توجد قنوات صوتية محملة. افتح تبويب Audio وحمّل رابط M3U أولًا.",
+                        "لا توجد قنوات صوتية محملة. مصدر الصوت مستقل عن الفيديو ويتم اختياره من هنا.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
@@ -109,7 +109,7 @@ fun AudioSourceSheet(
                     }
                 }
 
-                Text("مزامنة الصوت: " + syncMs + " ms", style = MaterialTheme.typography.titleSmall)
+                Text("مزامنة الصوت مع الفيديو: " + syncMs + " ms", style = MaterialTheme.typography.titleSmall)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -118,7 +118,7 @@ fun AudioSourceSheet(
                         Text("−100 ms")
                     }
                     Button(onClick = { manager.syncToVideo(videoPositionProvider()) }) {
-                        Text("Sync Now")
+                        Text("مزامنة الآن")
                     }
                     OutlinedButton(onClick = { manager.setSyncMs(syncMs + 100) }) {
                         Text("+100 ms")
@@ -133,7 +133,7 @@ fun AudioSourceSheet(
                     steps = 99,
                 )
                 Text(
-                    "المزامنة تُطبّق على موضع فيديو Live TV الحالي عند الضغط على Sync Now.",
+                    "تُزامَن القناة الصوتية المستقلة مع موضع فيديو Live TV الحالي دون إعادة تشغيل الفيديو.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
