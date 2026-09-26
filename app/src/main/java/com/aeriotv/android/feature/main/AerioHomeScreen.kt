@@ -180,6 +180,7 @@ private fun HomeNavigation(
                 modifier = Modifier
                     .focusRequester(requesters[index])
                     .focusProperties { down = downTarget }
+                    .clickable { onSelectTab(tab) }
                     .focusable()
                     .onFocusChanged { focused = it.isFocused }
                     .clip(RoundedCornerShape(16.dp))
@@ -198,7 +199,6 @@ private fun HomeNavigation(
                     Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                     Text(label, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Medium)
                 }
-                androidx.compose.foundation.clickable(onClick = { onSelectTab(tab) })
             }
         }
     }
@@ -255,6 +255,7 @@ private fun PosterCarousel(
                         up = navFocus
                     }
                     .onFocusChanged { if (it.isFocused) onSelected((selectedIndex + offset).floorMod(itemCount)) }
+                    .clickable { onPlay(item) }
                     .focusable()
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFF172131))
@@ -282,9 +283,6 @@ private fun PosterCarousel(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
-                if (distance == 0 && selectedIndex >= 0) {
-                    androidx.compose.foundation.clickable(onClick = { onPlay(item) })
                 }
             }
         }
