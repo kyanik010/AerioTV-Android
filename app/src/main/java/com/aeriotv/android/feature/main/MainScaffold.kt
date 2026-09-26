@@ -421,6 +421,10 @@ fun MainScaffold(
             hasSeries = AppTab.TVShows in stickyTabs,
         )
     }
+    // Home is the Eagle X landing surface, not a navigation destination button.
+    // Keep AppTab.Home internally so launch/back behavior can still land on the
+    // cinematic home, but never expose a Home pill in any navigation chrome.
+    val navigationTabs = tabs.filterNot { it == AppTab.Home }
     // One line per change of the inputs, so "why is the tab hidden" is provable
     // from logcat instead of from the screen.
     androidx.compose.runtime.LaunchedEffect(
@@ -1215,7 +1219,7 @@ fun MainScaffold(
                 contentAlignment = Alignment.Center,
             ) {
                 TabletTopTabBar(
-                    tabs = tabs,
+                    tabs = navigationTabs,
                     selected = selectedTab,
                     onSelect = { selectedTab = it; initialTabApplied = true },
                     scale = tabBarScale,
@@ -1426,7 +1430,7 @@ fun MainScaffold(
                             // is 32 dp further along.
                             val pivotX = with(density) { 32.dp.toPx() } / barSize.width.coerceAtLeast(1)
                             FloatingTabBar(
-                                tabs = tabs,
+                                tabs = navigationTabs,
                                 selected = selectedTab,
                                 onSelect = { selectedTab = it; initialTabApplied = true },
                                 modifier = Modifier
