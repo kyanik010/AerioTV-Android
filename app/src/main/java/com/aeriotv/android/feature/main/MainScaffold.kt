@@ -400,7 +400,6 @@ fun MainScaffold(
             hasSeries = true,
         )
         stickyTabs += live
-        stickyTabs -= AppTab.Favorites
         if (!vodSourceOk) { stickyTabs -= AppTab.OnDemand; stickyTabs -= AppTab.Movies; stickyTabs -= AppTab.TVShows }
         // A DENIED capability verdict is a real state change, not the transient
         // "empty list / still loading" the sticky rule exists to absorb, so it
