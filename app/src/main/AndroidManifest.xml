@@ -68,6 +68,7 @@
 
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="landscape"
             android:exported="true"
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|density"
