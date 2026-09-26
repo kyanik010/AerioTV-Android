@@ -63,8 +63,9 @@ import com.aeriotv.android.feature.ondemand.OnDemandViewModel
 import com.aeriotv.android.feature.movies.MediaItem
 import com.aeriotv.android.feature.playlist.PlaylistViewModel
 import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.random.Random
@@ -94,10 +95,12 @@ fun AerioHomeScreen(
             .take(18)
     }
     var selectedIndex by remember { mutableIntStateOf(0) }
-    var clock by remember { mutableStateOf(SimpleDateFormat("hh:mm a", Locale.US).format(Date())) }
+    var clock by remember { mutableStateOf(formatSystemClock()) }
     LaunchedEffect(Unit) {
         while (true) {
-            clock = SimpleDateFormat("hh:mm a", Locale.US).format(Date())
+            // Read the device/system timezone on every tick so a timezone change
+            // while the app is running is reflected automatically.
+            clock = formatSystemClock()
             delay(1_000L)
         }
     }
@@ -393,7 +396,7 @@ private fun HomeAccountSection(
 }
 
 @Composable
-private fun CinematicHomeBackground() {
+internal fun CinematicHomeBackground() {
     Canvas(Modifier.fillMaxSize()) {
         drawRect(Brush.verticalGradient(listOf(HomeBackgroundTop, HomeBackgroundBottom)))
 
@@ -452,4 +455,11 @@ private fun Int.floorMod(size: Int): Int {
     if (size <= 0) return 0
     val r = this % size
     return if (r < 0) r + size else r
+}
+
+
+private fun formatSystemClock(): String {
+    val zone = ZoneId.systemDefault()
+    val now = ZonedDateTime.now(zone)
+    return DateTimeFormatter.ofPattern("hh:mm a", Locale.US).format(now)
 }
