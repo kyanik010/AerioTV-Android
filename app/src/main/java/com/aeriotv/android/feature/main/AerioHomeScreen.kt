@@ -21,10 +21,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -165,10 +166,11 @@ private fun HomeNavigation(
     modifier: Modifier = Modifier,
 ) {
     val items = listOf(
-        Triple(Icons.Outlined.Home, if (language == AppLanguage.ENGLISH) "Home" else "الرئيسية", AppTab.Home),
+        Triple(Icons.Outlined.Tv, if (language == AppLanguage.ENGLISH) "Channels" else "القنوات", AppTab.LiveTV),
         Triple(Icons.Outlined.Movie, if (language == AppLanguage.ENGLISH) "Movies" else "الأفلام", AppTab.Movies),
         Triple(Icons.Outlined.PlayCircleOutline, if (language == AppLanguage.ENGLISH) "Series" else "المسلسلات", AppTab.TVShows),
-        Triple(Icons.Outlined.Tv, if (language == AppLanguage.ENGLISH) "Channels" else "القنوات", AppTab.LiveTV),
+        Triple(Icons.Outlined.FavoriteBorder, if (language == AppLanguage.ENGLISH) "Favorites" else "المفضلة", AppTab.Favorites),
+        Triple(Icons.Outlined.Settings, if (language == AppLanguage.ENGLISH) "Settings" else "الإعدادات", AppTab.Settings),
     )
     Column(
         modifier = modifier.width(196.dp),
