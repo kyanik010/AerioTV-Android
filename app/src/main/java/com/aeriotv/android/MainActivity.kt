@@ -16,6 +16,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -863,6 +866,15 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { onContentRateRequested(rate) }
         }
         enableEdgeToEdge()
+        // Android TV is a true edge-to-edge canvas: keep system status/navigation
+        // surfaces from reserving a black title strip above the Compose shell.
+        if (isTelevisionDevice()) {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            WindowInsetsControllerCompat(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.systemBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        }
         // Remote Control initiative: keep the button map hot for
         // dispatchKeyEvent (which cannot suspend).
         lifecycleScope.launch {
