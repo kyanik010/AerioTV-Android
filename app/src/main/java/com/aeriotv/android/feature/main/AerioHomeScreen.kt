@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -114,8 +116,8 @@ fun AerioHomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.665f)
-                    .padding(horizontal = 42.dp, vertical = 28.dp),
+                    .weight(0.68f)
+                    .padding(horizontal = 56.dp, vertical = 36.dp),
             ) {
                 HomeNavigation(
                     language = language,
@@ -140,7 +142,7 @@ fun AerioHomeScreen(
                     },
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(start = 270.dp, end = 30.dp),
+                        .padding(start = 250.dp, end = 30.dp),
                     itemCount = candidates.size,
                 )
             }
@@ -150,7 +152,7 @@ fun AerioHomeScreen(
                 language = language,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.335f),
+                    .weight(0.32f),
             )
         }
     }
@@ -171,7 +173,7 @@ private fun HomeNavigation(
         Triple(Icons.Outlined.Tv, if (language == AppLanguage.ENGLISH) "Channels" else "القنوات", AppTab.LiveTV),
     )
     Column(
-        modifier = modifier.width(332.dp),
+        modifier = modifier.width(196.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items.forEachIndexed { index, (icon, label, tab) ->
@@ -183,7 +185,7 @@ private fun HomeNavigation(
                     .clickable { onSelectTab(tab) }
                     .focusable()
                     .onFocusChanged { focused = it.isFocused }
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(Color.White.copy(alpha = if (focused) 0.16f else 0.075f))
                     .border(
                         1.dp,
@@ -191,13 +193,13 @@ private fun HomeNavigation(
                         RoundedCornerShape(16.dp),
                     )
                     .graphicsLayer { scaleX = if (focused) 1.03f else 1f; scaleY = if (focused) 1.03f else 1f }
-                    .height(78.dp)
-                    .padding(horizontal = 22.dp),
+                    .height(56.dp)
+                    .padding(horizontal = 18.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
-                    Text(label, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Medium)
+                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -226,19 +228,19 @@ private fun PosterCarousel(
         modifier = modifier
             .fillMaxHeight()
             .focusGroup(),
-        horizontalArrangement = Arrangement.spacedBy((-58).dp),
+        horizontalArrangement = Arrangement.spacedBy((-18).dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         items.forEachIndexed { visibleIndex, (item, offset) ->
             val distance = abs(offset)
-            val scale = when (distance) { 0 -> 1f; 1 -> .80f; else -> .66f }
-            val alpha = when (distance) { 0 -> 1f; 1 -> .64f; else -> .44f }
+            val scale = when (distance) { 0 -> 1f; 1 -> .78f; else -> .65f }
+            val alpha = when (distance) { 0 -> 1f; 1 -> .61f; else -> .42f }
             val rotation = when { offset < 0 -> -7f * distance; offset > 0 -> 7f * distance; else -> 0f }
             val requester = requesters[visibleIndex]
             Box(
                 modifier = Modifier
-                    .width(370.dp)
-                    .height(454.dp)
+                    .width(232.dp)
+                    .height(332.dp)
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale
@@ -257,7 +259,7 @@ private fun PosterCarousel(
                     .onFocusChanged { if (it.isFocused) onSelected((selectedIndex + offset).floorMod(itemCount)) }
                     .clickable { onPlay(item) }
                     .focusable()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFF172131))
                     .border(1.dp, Color.White.copy(alpha = if (distance == 0) .20f else .06f), RoundedCornerShape(16.dp))
                     .then(if (distance == 0) Modifier.focusRequester(centerFocus) else Modifier),
@@ -276,10 +278,10 @@ private fun PosterCarousel(
                 if (distance == 0) {
                     Text(
                         item.title,
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 28.dp, vertical = 22.dp),
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 18.dp),
                         color = Color.White,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -303,12 +305,12 @@ private fun HomeAccountSection(
         modifier = modifier
             .background(HomeAccountBackground)
             .border(1.dp, Color.White.copy(alpha = .08f))
-            .padding(horizontal = 64.dp, vertical = 26.dp),
+            .padding(horizontal = 48.dp, vertical = 24.dp),
     ) {
         Text(
             if (language == AppLanguage.ENGLISH) "Account & Info" else "الحساب والمعلومات",
             color = Color.White,
-            fontSize = 28.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
         )
         Row(
@@ -316,20 +318,20 @@ private fun HomeAccountSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.size(132.dp).clip(CircleShape)
+                modifier = Modifier.size(72.dp).clip(CircleShape)
                     .background(Color.White.copy(alpha = .035f))
                     .border(2.dp, HomeAccent.copy(alpha = .72f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Outlined.Person, contentDescription = null, tint = HomeAccent, modifier = Modifier.size(68.dp))
+                Icon(Icons.Outlined.Person, contentDescription = null, tint = HomeAccent, modifier = Modifier.size(36.dp))
             }
-            Spacer(Modifier.width(48.dp))
+            Spacer(Modifier.width(24.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(if (language == AppLanguage.ENGLISH) "Username" else "اسم المستخدم", color = Color.White.copy(alpha = .55f), fontSize = 18.sp)
+                Text(if (language == AppLanguage.ENGLISH) "Username" else "اسم المستخدم", color = Color.White.copy(alpha = .55f), fontSize = 14.sp)
                 Text(
                     playlist?.username?.takeIf { it.isNotBlank() } ?: "Guest_User",
                     color = Color.White,
-                    fontSize = 32.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -337,14 +339,14 @@ private fun HomeAccountSection(
                 Text(
                     if (language == AppLanguage.ENGLISH) "Expiry date : —" else "تاريخ انتهاء الصلاحية : —",
                     color = Color.White.copy(alpha = .55f),
-                    fontSize = 17.sp,
+                    fontSize = 14.sp,
                 )
             }
             Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(time, color = Color.White, fontSize = 70.sp, fontWeight = FontWeight.Bold)
+                Text(time, color = Color.White, fontSize = 64.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(10.dp))
-                Text(amPm, color = Color.White.copy(alpha = .45f), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 12.dp))
+                Text(amPm, color = Color.White.copy(alpha = .45f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 10.dp))
             }
         }
     }
