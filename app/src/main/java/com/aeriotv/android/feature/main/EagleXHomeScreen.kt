@@ -104,7 +104,7 @@ fun EagleXHomeScreen(
             .fillMaxSize()
             .background(HomeBackground)
     ) {
-        CinematicHomeBackground()
+        CinematicHomeBackground(selectedIndex = selectedIndex, itemCount = media.size)
 
         Column(
             modifier = Modifier
@@ -440,61 +440,158 @@ private fun HomeClock() {
 }
 
 @Composable
-private fun CinematicHomeBackground() {
+private fun CinematicHomeBackground(
+    selectedIndex: Int,
+    itemCount: Int,
+) {
     Canvas(Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        val min = size.minDimension
+
+        // 1. Dark cinematic base: never a flat surface.
         drawRect(
             brush = Brush.verticalGradient(
-                0f to Color(0xFF101722),
-                0.42f to HomeBackground,
-                1f to Color(0xFF05070B),
+                0f to Color(0xFF111821),
+                0.20f to Color(0xFF0C1118),
+                0.52f to Color(0xFF080B11),
+                0.78f to Color(0xFF06080D),
+                1f to Color(0xFF030509),
             )
         )
+
+        // 2. Very soft ambient cyan in the upper-right corner.
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(HomeAccent.copy(alpha = 0.12f), Color.Transparent),
-                center = Offset(size.width * 0.56f, size.height * 0.46f),
-                radius = size.minDimension * 0.46f,
+                colors = listOf(
+                    HomeAccent.copy(alpha = 0.070f),
+                    HomeAccent.copy(alpha = 0.026f),
+                    Color.Transparent,
+                ),
+                center = Offset(w * 0.91f, h * 0.06f),
+                radius = min * 0.52f,
             ),
-            radius = size.minDimension * 0.46f,
-            center = Offset(size.width * 0.56f, size.height * 0.46f),
-        )
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(HomeAccent.copy(alpha = 0.055f), Color.Transparent),
-                center = Offset(size.width * 0.90f, size.height * 0.05f),
-                radius = size.minDimension * 0.48f,
-            ),
-            radius = size.minDimension * 0.48f,
-            center = Offset(size.width * 0.90f, size.height * 0.05f),
+            radius = min * 0.52f,
+            center = Offset(w * 0.91f, h * 0.06f),
         )
 
-        val particleCount = 34
+        // 3. Hero ambient light. Its horizontal position follows the active
+        // carousel item rather than being a permanent neon spot.
+        val heroX = when {
+            itemCount <= 1 -> w * 0.55f
+            else -> {
+                val first = w * 0.48f
+                val last = w * 0.77f
+                first + (last - first) * (selectedIndex.coerceIn(0, itemCount - 1).toFloat() / (itemCount - 1).toFloat())
+            }
+        }
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    HomeAccent.copy(alpha = 0.055f),
+                    HomeAccent.copy(alpha = 0.020f),
+                    Color.Transparent,
+                ),
+                center = Offset(heroX, h * 0.47f),
+                radius = min * 0.43f,
+            ),
+            radius = min * 0.43f,
+            center = Offset(heroX, h * 0.47f),
+        )
+
+        // 4. Additional neutral depth behind the content boundary.
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.Black.copy(alpha = 0.06f),
+                    Color.Black.copy(alpha = 0.16f),
+                ),
+                startY = h * 0.55f,
+                endY = h,
+            )
+        )
+
+        // 5. Extremely subtle dust / particles. Deterministic positions avoid
+        // visual movement and keep the background calm.
+        val particleCount = 52
         repeat(particleCount) { i ->
-            val x = ((i * 97) % 1000) / 1000f * size.width
-            val y = ((i * 173 + 61) % 1000) / 1000f * size.height
-            val r = if (i % 5 == 0) 1.35f else 0.8f
-            drawCircle(Color.White.copy(alpha = if (i % 5 == 0) 0.055f else 0.028f), r, Offset(x, y))
+            val x = (((i * 193 + 47) % 997) / 997f) * w
+            val y = (((i * 317 + 113) % 991) / 991f) * h
+            val radius = when {
+                i % 17 == 0 -> 1.25f
+                i % 7 == 0 -> 0.95f
+                else -> 0.60f
+            }
+            val alpha = when {
+                i % 17 == 0 -> 0.040f
+                i % 7 == 0 -> 0.030f
+                else -> 0.018f
+            }
+            drawCircle(
+                color = Color.White.copy(alpha = alpha),
+                radius = radius,
+                center = Offset(x, y),
+            )
         }
 
-        val curve = Path().apply {
-            moveTo(size.width * 0.12f, size.height * 0.83f)
+        // 6. Nearly invisible curved light trails. Multiple wide curves make
+        // the surface feel dimensional without becoming decorative neon.
+        val curveOne = Path().apply {
+            moveTo(-w * 0.04f, h * 0.78f)
             cubicTo(
-                size.width * 0.30f, size.height * 0.56f,
-                size.width * 0.63f, size.height * 0.96f,
-                size.width * 0.93f, size.height * 0.60f,
+                w * 0.20f, h * 0.54f,
+                w * 0.53f, h * 0.93f,
+                w * 1.05f, h * 0.50f,
             )
         }
         drawPath(
-            curve,
-            color = HomeAccent.copy(alpha = 0.025f),
-            style = Stroke(width = 1.2f, cap = StrokeCap.Round),
+            path = curveOne,
+            color = HomeAccent.copy(alpha = 0.018f),
+            style = Stroke(width = 1.1f, cap = StrokeCap.Round),
         )
 
+        val curveTwo = Path().apply {
+            moveTo(w * 0.18f, h * 1.04f)
+            cubicTo(
+                w * 0.42f, h * 0.72f,
+                w * 0.76f, h * 0.84f,
+                w * 1.02f, h * 0.64f,
+            )
+        }
+        drawPath(
+            path = curveTwo,
+            color = Color.White.copy(alpha = 0.010f),
+            style = Stroke(width = 0.9f, cap = StrokeCap.Round),
+        )
+
+        // 7. Vignette: darken all four edges progressively, preserving the
+        // center as the visual focus.
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.68f)),
-                center = Offset(size.width * 0.5f, size.height * 0.48f),
-                radius = size.maxDimension * 0.72f,
+                colors = listOf(
+                    Color.Transparent,
+                    Color.Transparent,
+                    Color.Black.copy(alpha = 0.20f),
+                    Color.Black.copy(alpha = 0.62f),
+                ),
+                center = Offset(w * 0.50f, h * 0.47f),
+                radius = maxOf(w, h) * 0.72f,
+            )
+        )
+
+        // 8. Final top/bottom edge falloff. This prevents the UI from looking
+        // like cards floating over a single flat background.
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Black.copy(alpha = 0.20f),
+                    Color.Transparent,
+                    Color.Transparent,
+                    Color.Black.copy(alpha = 0.28f),
+                ),
+                startY = 0f,
+                endY = h,
             )
         )
     }
