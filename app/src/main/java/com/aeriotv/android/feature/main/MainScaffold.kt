@@ -986,7 +986,7 @@ fun MainScaffold(
                             onRetainedClick = { showRetainedDialog = true },
                             onRefresh = { viewModel.refreshPlaylist() },
                             refreshing = anyBackgroundWork,
-                            tabs = tabs,
+                            tabs = navigationTabs,
                             selected = selectedTab,
                             onSelect = { selectedTab = it; initialTabApplied = true },
                             focusRequester = topNavRequester,
