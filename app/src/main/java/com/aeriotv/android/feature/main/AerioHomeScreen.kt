@@ -107,7 +107,7 @@ fun AerioHomeScreen(
         else (-2..2).map { offset -> candidates[(selectedIndex + offset).floorMod(candidates.size)] to offset }
     }
     val centerPosterFocus = remember { FocusRequester() }
-    val navFocus = remember { List(4) { FocusRequester() } }
+    val navFocus = remember { List(5) { FocusRequester() } }
 
     Box(modifier = modifier.fillMaxSize()) {
         CinematicHomeBackground()
