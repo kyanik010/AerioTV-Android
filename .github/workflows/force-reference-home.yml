@@ -1,0 +1,58 @@
+name: Enforce Reference Home
+
+on:
+  push:
+    branches: [ui/reference-home-2026-09-26]
+
+permissions:
+  contents: write
+
+jobs:
+  enforce-home:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/reference-home-2026-09-26
+          fetch-depth: 1
+
+      - name: Force Home startup selection
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
+          s = p.read_text()
+          start = s.find('    // Honour the saved defaultTab once its tab is actually available.')
+          end = s.find('    // If the currently-selected tab disappears', start)
+          if start < 0 or end < 0:
+              raise SystemExit('startup default-tab block not found')
+          replacement = '''    // Reference Home is the mandatory landing surface. Never let the saved
+    // Default Tab preference replace Home during startup.
+    LaunchedEffect(defaultTabPref, tabs) {
+        if (selectedTab == AppTab.Home) {
+            initialTabApplied = true
+            return@LaunchedEffect
+        }
+        if (initialTabApplied) return@LaunchedEffect
+        initialTabApplied = true
+        selectedTab = AppTab.Home
+    }
+
+'''
+          p.write_text(s[:start] + replacement + s[end:])
+          PY
+
+      - name: Verify startup Home guard
+        run: |
+          grep -n -A12 -B2 'Reference Home is the mandatory landing surface' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+          test "$(grep -c 'selectedTab = AppTab.Home' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt)" -ge 1
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+          git diff --cached --quiet || git commit -m 'fix: make reference home the real startup screen'
+          git push origin HEAD:ui/reference-home-2026-09-26
