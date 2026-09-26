@@ -8,6 +8,9 @@
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false" />
+    <uses-feature
+        android:name="android.hardware.screen.landscape"
+        android:required="true" />
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Google Cast (GH #33) sender-side device discovery. The Cast SDK's mDNS
          discovery runs in-process (androidx.mediarouter) and needs a Wi-Fi
@@ -73,7 +76,10 @@
             android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|density"
             android:resizeableActivity="false"
-            android:supportsPictureInPicture="true"
+            android:supportsPictureInPicture="true">
+            <property
+                android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+                android:value="true" />
             android:theme="@style/Theme.AerioTV">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
