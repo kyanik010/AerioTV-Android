@@ -860,20 +860,21 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Eagle X is a landscape-only TV-style application on every Android device.
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         // GH#40 rate match: the seamless matcher reports the content rate
         // class; pick a same-size display mode at that rate when needed.
         com.aeriotv.android.feature.player.DisplayFrameRateMatcher.onRateRequested = { rate ->
             runOnUiThread { onContentRateRequested(rate) }
         }
         enableEdgeToEdge()
-        // Android TV is a true edge-to-edge canvas: keep system status/navigation
-        // surfaces from reserving a black title strip above the Compose shell.
-        if (isTelevisionDevice()) {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            WindowInsetsControllerCompat(window, window.decorView).apply {
-                hide(WindowInsetsCompat.Type.systemBars())
-                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
+        // The app is a single edge-to-edge canvas. Hide system bars on every
+        // form factor so activation and the Eagle X home never acquire a
+        // separate black/status area above the Compose surface.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         // Remote Control initiative: keep the button map hot for
         // dispatchKeyEvent (which cannot suspend).
@@ -883,24 +884,7 @@ class MainActivity : ComponentActivity() {
         // Audit #47: keep the Android TV launcher's channel row + Watch Next
         // in sync. No-op on phones/tablets (FEATURE_LEANBACK gate inside).
         homeChannelsPublisher.start(lifecycleScope)
-        // Auto-Rotate (Logan 2026-08-07): phones/tablets follow the sensor
-        // by default; when disabled, freeze the activity in its current
-        // orientation. TVs never rotate - skip entirely. The player's
-        // forced-landscape toggle overrides this while engaged and restores
-        // through AutoRotateState.restingOrientation.
-        if (!isTelevisionDevice()) {
-            lifecycleScope.launch {
-                appPreferences.autoRotate.collect { enabled ->
-                    com.aeriotv.android.core.preferences.AutoRotateState.enabled = enabled
-                    val forcedLandscape = requestedOrientation ==
-                        android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
-                    if (!forcedLandscape) {
-                        requestedOrientation =
-                            com.aeriotv.android.core.preferences.AutoRotateState.restingOrientation
-                    }
-                }
-            }
-        }
+        // Auto-rotate is intentionally disabled: all app surfaces are landscape-only.
         // GH #38: one-shot startup refresh-rate pin (first emitted value only -
         // changing the setting later applies on next launch, avoiding a live
         // HDMI re-handshake underneath a playing stream).
