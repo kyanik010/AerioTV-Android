@@ -642,7 +642,7 @@ fun PlayerChromeOverlay(
                             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
                         } else {
                             // Auto-Rotate aware release (App Behaviors).
-                            com.aeriotv.android.core.preferences.AutoRotateState.restingOrientation
+                            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                         }
                     },
                 )
