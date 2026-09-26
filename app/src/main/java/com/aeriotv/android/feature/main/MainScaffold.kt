@@ -442,7 +442,6 @@ fun MainScaffold(
             MainScaffoldEntryPoint::class.java,
         ).activationConfigStore()
     }
-    val activationConfig by activationStore.config.collectAsStateWithLifecycle()
     val miniPlayerVm: MiniPlayerViewModel = hiltViewModel()
     val miniPlayerState by miniPlayerVm.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
