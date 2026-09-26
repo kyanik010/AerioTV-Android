@@ -964,33 +964,35 @@ fun MainScaffold(
                 // initial focus it decides) is exactly what it was when the
                 // bar was the Column's first child; zIndex keeps it painted
                 // above the content it now overlaps.
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .fillMaxWidth()
-                        .zIndex(1f)
-                        .onSizeChanged { barHeightPx = it.height }
-                        .graphicsLayer {
-                            alpha = barFraction
-                            translationY = -(1f - barFraction) * barHeightPx.toFloat()
-                        }
-                        .onFocusChanged { barHasFocus = it.hasFocus; topNavHasFocusState.value = it.hasFocus },
-                ) {
-                    TvTopTabBar(
-                        retainedCount = retainedList.size,
-                        onRetainedClick = { showRetainedDialog = true },
-                        onRefresh = { viewModel.refreshPlaylist() },
-                        refreshing = anyBackgroundWork,
-                        tabs = tabs,
-                        selected = selectedTab,
-                        onSelect = { selectedTab = it; initialTabApplied = true },
-                        focusRequester = topNavRequester,
-                        tabEntryFocus = tabEntryFocus,
-                        lastUpKeyMs = lastUpKeyMs,
-                        pillRequesters = pillRequesters,
-                        isTabWarm = { it in visitedTabs },
-                        onDrawnBottomChanged = { barDrawnBottomPx = it },
-                    )
+                if (selectedTab != AppTab.Home) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .fillMaxWidth()
+                            .zIndex(1f)
+                            .onSizeChanged { barHeightPx = it.height }
+                            .graphicsLayer {
+                                alpha = barFraction
+                                translationY = -(1f - barFraction) * barHeightPx.toFloat()
+                            }
+                            .onFocusChanged { barHasFocus = it.hasFocus; topNavHasFocusState.value = it.hasFocus },
+                    ) {
+                        TvTopTabBar(
+                            retainedCount = retainedList.size,
+                            onRetainedClick = { showRetainedDialog = true },
+                            onRefresh = { viewModel.refreshPlaylist() },
+                            refreshing = anyBackgroundWork,
+                            tabs = tabs,
+                            selected = selectedTab,
+                            onSelect = { selectedTab = it; initialTabApplied = true },
+                            focusRequester = topNavRequester,
+                            tabEntryFocus = tabEntryFocus,
+                            lastUpKeyMs = lastUpKeyMs,
+                            pillRequesters = pillRequesters,
+                            isTabWarm = { it in visitedTabs },
+                            onDrawnBottomChanged = { barDrawnBottomPx = it },
+                        )
+                    }
                 }
                 MainTabContent(
                     selectedTab = selectedTab,
@@ -1018,7 +1020,7 @@ fun MainScaffold(
                         // measured height plus the hint band. It never changes
                         // while the bar collapses, so no tab (guide, Settings,
                         // media pages) sees its viewport resize mid-scroll.
-                        .padding(top = barInset + topHintGap)
+                         .padding(top = if (selectedTab == AppTab.Home) 0.dp else barInset + topHintGap)
                         // UP leaving the tab content must land on the SELECTED
                         // tab's pill. Geometric 2D search used to hit whichever
                         // pill sat above the focused column (On Demand over the
