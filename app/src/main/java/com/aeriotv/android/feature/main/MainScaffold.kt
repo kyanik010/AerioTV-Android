@@ -396,7 +396,7 @@ fun MainScaffold(
     val stickyTabs = remember(capsPlaylist?.id ?: state.playlist?.id) { mutableSetOf<AppTab>() }
     val tabs = run {
         val live = visibleTabs(
-            includeHome = true,
+            includeHome = false,
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
             hasFavorites = true,
@@ -420,7 +420,7 @@ fun MainScaffold(
         if (seriesDenied) stickyTabs -= AppTab.TVShows
         if (moviesDenied && seriesDenied) stickyTabs -= AppTab.OnDemand
         visibleTabs(
-            includeHome = true,
+            includeHome = false,
             hasFavorites = true,
             hasVod = true,
             hasRecordings = hasRecordings,
@@ -622,7 +622,7 @@ fun MainScaffold(
     // Settings sub-screen BackHandler in SettingsTabContent is composed
     // DEEPER and is enabled only while a sub-screen is open, so it takes
     // priority there; this only fires on a tab root.
-    val homeTab = if (AppTab.Home in tabs) AppTab.Home else AppTab.LiveTV
+    val homeTab = AppTab.Home
     // TV: the leaving tab's content nodes vanish, and Compose's fallback
     // hands focus to the LEFTMOST pill (Live TV) while the home tab is
     // selected (Logan 2026-09-02 screenshot). Ask for the home pill instead;
@@ -2879,7 +2879,8 @@ internal fun visibleTabs(
     hasMovies: Boolean = hasVod,
     hasSeries: Boolean = hasVod,
 ): List<AppTab> = buildList {
-    if (includeHome) add(AppTab.Home)
+    // Home is the visual landing surface, not a navigation destination.
+    // Never expose AppTab.Home in any rail/top/bottom tab collection.
     add(AppTab.LiveTV)
     if (hasFavorites) add(AppTab.Favorites)
     if (hasRecordings) add(AppTab.DVR)
