@@ -20,6 +20,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +46,8 @@ import androidx.compose.material.icons.filled.FiberSmartRecord
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -84,6 +87,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -393,9 +397,9 @@ fun MainScaffold(
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
             hasFavorites = true,
-            hasVod = hasVodContent,
+            hasVod = true,
             hasRecordings = hasRecordings,
-            splitVod = splitVod,
+            splitVod = true,
             hasMovies = true,
             hasSeries = true,
         )
@@ -414,12 +418,12 @@ fun MainScaffold(
         if (moviesDenied && seriesDenied) stickyTabs -= AppTab.OnDemand
         visibleTabs(
             includeHome = true,
-            hasFavorites = AppTab.Favorites in stickyTabs,
-            hasVod = AppTab.OnDemand in stickyTabs,
-            hasRecordings = AppTab.DVR in stickyTabs,
-            splitVod = splitVod,
-            hasMovies = AppTab.Movies in stickyTabs,
-            hasSeries = AppTab.TVShows in stickyTabs,
+            hasFavorites = true,
+            hasVod = true,
+            hasRecordings = hasRecordings,
+            splitVod = true,
+            hasMovies = true,
+            hasSeries = true,
         )
     }
     // One line per change of the inputs, so "why is the tab hidden" is provable
@@ -553,7 +557,7 @@ fun MainScaffold(
         // Search is never IN `tabs` (it's the floating bar button, not a
         // pill) but is a perfectly valid selection - don't bounce it.
         if (selectedTab !in tabs && selectedTab != AppTab.Search) {
-            selectedTab = AppTab.LiveTV
+            selectedTab = AppTab.Home
         }
     }
 
@@ -615,9 +619,7 @@ fun MainScaffold(
     // Settings sub-screen BackHandler in SettingsTabContent is composed
     // DEEPER and is enabled only while a sub-screen is open, so it takes
     // priority there; this only fires on a tab root.
-    val homeTab = AppTab.entries.firstOrNull { it.name == defaultTabPref }
-        ?.let { if (it == AppTab.OnDemand && splitVod) AppTab.Movies else it }
-        ?.takeIf { it in tabs && it != AppTab.Search } ?: if (AppTab.Home in tabs) AppTab.Home else AppTab.LiveTV
+    val homeTab = if (AppTab.Home in tabs) AppTab.Home else AppTab.LiveTV
     // TV: the leaving tab's content nodes vanish, and Compose's fallback
     // hands focus to the LEFTMOST pill (Live TV) while the home tab is
     // selected (Logan 2026-09-02 screenshot). Ask for the home pill instead;
@@ -761,6 +763,41 @@ fun MainScaffold(
                 viewModel.checkEpgSourcesForChanges()
             }
         }
+    }
+
+    // Reference UI shell: the five requested navigation destinations always
+    // use the same left-rail landscape composition on phone and Android TV.
+    // The legacy global top/bottom tab chrome is completely bypassed for these
+    // destinations, so pressing a reference rail item never drops the user into
+    // the old shell.
+    val referencePrimaryTabs = setOf(
+        AppTab.Home, AppTab.LiveTV, AppTab.Movies, AppTab.TVShows,
+        AppTab.Favorites, AppTab.Settings,
+    )
+    if (selectedTab in referencePrimaryTabs) {
+        ReferenceAppShell(
+            selectedTab = selectedTab,
+            tabs = tabs,
+            onSelectTab = { selectedTab = it; initialTabApplied = true },
+            onChannelClick = onChannelClick,
+            onMovieClick = onMovieClick,
+            onSeriesClick = onSeriesClick,
+            onEpisodeResume = onEpisodeResume,
+            onResumeMovie = onResumeMovie,
+            onPlayMovie = onPlayMovie,
+            onPlayMovieFromStart = onPlayMovieFromStart,
+            onEpisodeResumeFromStart = onEpisodeResumeFromStart,
+            onPlayRecording = onPlayRecording,
+            onPlayCatchup = onPlayCatchup,
+            onLaunchMultiview = onLaunchMultiview,
+            onWatchLive = onWatchLive,
+            onWatchFromBeginning = onWatchFromBeginning,
+            onOpenSearch = onOpenSearch,
+            viewModel = viewModel,
+            visited = visitedTabs,
+            modifier = Modifier.fillMaxSize(),
+        )
+        return
     }
 
     // Android TV / Google TV: a 10-foot top tab bar instead of the phone
@@ -2653,6 +2690,182 @@ private fun SettingsTabContent(
  * A bare live-TV M3U, or a Dispatcharr/Xtream source with no VOD and no
  * recordings, surfaces only Live TV + Settings - empty tabs never appear.
  */
+@Composable
+private fun ReferenceAppShell(
+    selectedTab: AppTab,
+    tabs: List<AppTab>,
+    onSelectTab: (AppTab) -> Unit,
+    onChannelClick: (M3UChannel) -> Unit,
+    onMovieClick: (String) -> Unit,
+    onSeriesClick: (Int) -> Unit,
+    onEpisodeResume: (String) -> Unit,
+    onResumeMovie: (String) -> Unit,
+    onPlayMovie: (String) -> Unit,
+    onPlayMovieFromStart: (String) -> Unit,
+    onEpisodeResumeFromStart: (String) -> Unit,
+    onPlayRecording: (String, String, Int) -> Unit,
+    onPlayCatchup: (String, String, String, Long, Long, String, String) -> Unit,
+    onLaunchMultiview: () -> Unit,
+    onWatchLive: (String, String, Boolean, Long, Int?) -> Unit,
+    onWatchFromBeginning: (String, String, Boolean, Long, Int?, Boolean) -> Unit,
+    onOpenSearch: () -> Unit,
+    viewModel: PlaylistViewModel,
+    visited: androidx.compose.runtime.snapshots.SnapshotStateList<AppTab>,
+    modifier: Modifier = Modifier,
+) {
+    val navFocus = remember { List(5) { FocusRequester() } }
+    val primaryTabs = listOf(
+        AppTab.LiveTV to Icons.Filled.Tv,
+        AppTab.Movies to Icons.Filled.FiberSmartRecord,
+        AppTab.TVShows to Icons.Filled.Tv,
+        AppTab.Favorites to Icons.Outlined.FavoriteBorder,
+        AppTab.Settings to Icons.Outlined.Settings,
+    )
+    Box(modifier = modifier.background(Color(0xFF0B111B))) {
+        CinematicReferenceBackground()
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 48.dp)
+                    .width(196.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                primaryTabs.forEachIndexed { index, (tab, icon) ->
+                    ReferenceRailItem(
+                        icon = icon,
+                        label = when (tab) {
+                            AppTab.LiveTV -> "القنوات"
+                            AppTab.Movies -> "الأفلام"
+                            AppTab.TVShows -> "المسلسلات"
+                            AppTab.Favorites -> "المفضلة"
+                            else -> "الإعدادات"
+                        },
+                        selected = selectedTab == tab,
+                        focusRequester = navFocus[index],
+                        onClick = { onSelectTab(tab) },
+                    )
+                }
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .absolutePadding(left = 270.dp, right = 36.dp, top = 28.dp, bottom = 28.dp),
+        ) {
+            MainTabContent(
+                selectedTab = selectedTab,
+                tabs = tabs,
+                onChannelClick = onChannelClick,
+                onMovieClick = onMovieClick,
+                onSeriesClick = onSeriesClick,
+                onEpisodeResume = onEpisodeResume,
+                onResumeMovie = onResumeMovie,
+                onPlayMovie = onPlayMovie,
+                onPlayMovieFromStart = onPlayMovieFromStart,
+                onEpisodeResumeFromStart = onEpisodeResumeFromStart,
+                onPlayRecording = onPlayRecording,
+                onPlayCatchup = onPlayCatchup,
+                onLaunchMultiview = onLaunchMultiview,
+                onWatchLive = onWatchLive,
+                onWatchFromBeginning = onWatchFromBeginning,
+                onOpenSearch = onOpenSearch,
+                onSelectTab = onSelectTab,
+                viewModel = viewModel,
+                visited = visited,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReferenceRailItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    selected: Boolean,
+    focusRequester: FocusRequester,
+    onClick: () -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .focusRequester(focusRequester)
+            .focusable()
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .height(56.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = if (focused || selected) 0.12f else 0.065f))
+            .border(
+                1.dp,
+                Color.White.copy(alpha = if (focused) 0.30f else 0.12f),
+                RoundedCornerShape(12.dp),
+            )
+            .graphicsLayer {
+                scaleX = if (focused) 1.03f else 1f
+                scaleY = if (focused) 1.03f else 1f
+            }
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+            Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        }
+        if (focused || selected) {
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .width(3.dp)
+                    .height(24.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFF4FC8E8).copy(alpha = 0.90f))
+            )
+        }
+    }
+}
+
+@Composable
+private fun CinematicReferenceBackground() {
+    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+        drawRect(
+            androidx.compose.ui.graphics.Brush.verticalGradient(
+                listOf(Color(0xFF1C2433), Color(0xFF0E1520))
+            )
+        )
+        drawRect(
+            androidx.compose.ui.graphics.Brush.radialGradient(
+                listOf(Color(0xFF4FC8E8).copy(alpha = 0.09f), Color.Transparent),
+                center = Offset(size.width * 0.84f, size.height * 0.12f),
+                radius = size.width * 0.33f,
+            )
+        )
+        drawRect(
+            androidx.compose.ui.graphics.Brush.radialGradient(
+                listOf(Color.White.copy(alpha = 0.03f), Color.Transparent),
+                center = Offset(size.width * 0.56f, size.height * 0.40f),
+                radius = size.width * 0.30f,
+            )
+        )
+        val random = kotlin.random.Random(2209)
+        repeat(120) {
+            drawCircle(
+                Color.White.copy(alpha = random.nextFloat() * 0.08f),
+                random.nextFloat() * 1.1f + 0.25f,
+                Offset(random.nextFloat() * size.width, random.nextFloat() * size.height * 0.72f),
+            )
+        }
+        val vignette = androidx.compose.ui.graphics.Brush.radialGradient(
+            listOf(Color.Transparent, Color.Black.copy(alpha = 0.22f)),
+            center = Offset(size.width * 0.5f, size.height * 0.40f),
+            radius = size.width * 0.78f,
+        )
+        drawRect(vignette)
+    }
+}
+
 internal fun visibleTabs(
     includeHome: Boolean = false,
     hasFavorites: Boolean = false,
