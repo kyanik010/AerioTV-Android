@@ -856,6 +856,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // AerioTV is a landscape-only experience on both Android TV and phones/tablets.
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         super.onCreate(savedInstanceState)
         // GH#40 rate match: the seamless matcher reports the content rate
         // class; pick a same-size display mode at that rate when needed.
