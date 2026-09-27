@@ -860,8 +860,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Eagle X is a landscape-only TV-style application on every Android device.
-        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        // Eagle X home uses the portrait layout on phones and tablets.
+        // Keep the activity locked to portrait so the Compose screen cannot fall back to the TV landscape layout.
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         // GH#40 rate match: the seamless matcher reports the content rate
         // class; pick a same-size display mode at that rate when needed.
         com.aeriotv.android.feature.player.DisplayFrameRateMatcher.onRateRequested = { rate ->
@@ -884,7 +885,7 @@ class MainActivity : ComponentActivity() {
         // Audit #47: keep the Android TV launcher's channel row + Watch Next
         // in sync. No-op on phones/tablets (FEATURE_LEANBACK gate inside).
         homeChannelsPublisher.start(lifecycleScope)
-        // Auto-rotate is intentionally disabled: all app surfaces are landscape-only.
+        // Auto-rotate is intentionally disabled: the Eagle X home is portrait-first.
         // GH #38: one-shot startup refresh-rate pin (first emitted value only -
         // changing the setting later applies on next launch, avoiding a live
         // HDMI re-handshake underneath a playing stream).
