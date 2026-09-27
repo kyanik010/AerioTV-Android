@@ -27,37 +27,67 @@ jobs:
           from pathlib import Path
           p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
           s = p.read_text()
-          if 'if (selectedTab == AppTab.Home) {' not in s:
-              marker = '''    Box(modifier = modifier) {\n        val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {'''
-              replacement = '''    Box(modifier = modifier) {\n        if (selectedTab == AppTab.Home) {\n            EagleXHomeNavigation(\n                onSelect = onSelectTab,\n                modifier = Modifier.fillMaxSize(),\n            )\n        } else {\n        val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {'''
-              if s.count(marker) != 1:
-                  raise SystemExit(f'Expected exactly one MainTabContent marker, found {s.count(marker)}')
-              s = s.replace(marker, replacement, 1)
-              tail = '''        keepAliveTabs.forEach { tab ->\n            val active = tab == selectedTab\n            androidx.compose.runtime.key(tab) {\n                CompositionLocalProvider(LocalTabIsActive provides active) {\n                    Box(if (active) Modifier.fillMaxSize() else Modifier.keepAliveHidden()) { render(tab) }\n                }\n            }\n        }\n    }\n}'''
-              replacement_tail = '''        keepAliveTabs.forEach { tab ->\n            val active = tab == selectedTab\n            androidx.compose.runtime.key(tab) {\n                CompositionLocalProvider(LocalTabIsActive provides active) {\n                    Box(if (active) Modifier.fillMaxSize() else Modifier.keepAliveHidden()) { render(tab) }\n                }\n            }\n        }\n        }\n    }\n}'''
-              if s.count(tail) != 1:
-                  raise SystemExit(f'Expected exactly one MainTabContent tail, found {s.count(tail)}')
-              s = s.replace(tail, replacement_tail, 1)
-          s = s.replace('return@tvShellBox', 'return')
-          s = s.replace('horizontalAlignment = Alignment.Center,', 'horizontalAlignment = Alignment.CenterHorizontally,')
+
+          start_marker = '@Composable\nprivate fun MainTabContent('
+          start = s.find(start_marker)
+          if start < 0:
+              raise SystemExit('MainTabContent function marker not found')
+
+          body_marker = '    Box(modifier = modifier) {\n        val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {'
+          pos = s.find(body_marker, start)
+          if pos < 0:
+              raise SystemExit('MainTabContent Box/render marker not found')
+
+          home_guard = '''    Box(modifier = modifier) {
+        if (selectedTab == AppTab.Home) {
+            EagleXHomeNavigation(
+                onSelect = onSelectTab,
+                modifier = Modifier.fillMaxSize(),
+            )
+            return@Box
+        }
+        val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {'''
+
+          s = s[:pos] + s[pos:].replace(body_marker, home_guard, 1)
           p.write_text(s)
           PY
           git diff --check
+
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt').read_text()
+          start = s.find('@Composable\nprivate fun MainTabContent(')
+          end = s.find('\n/**\n * 10-foot top navigation', start)
+          body = s[start:end]
+          expected = '''if (selectedTab == AppTab.Home) {
+            EagleXHomeNavigation(
+                onSelect = onSelectTab,
+                modifier = Modifier.fillMaxSize(),
+            )
+            return@Box'''
+          if start < 0 or end < 0 or expected not in body:
+              raise SystemExit('VERIFY FAILED: Home is not rendered directly by MainTabContent')
+          print('VERIFY OK: MainTabContent renders EagleXHomeNavigation for AppTab.Home')
+          PY
+
       - name: Commit source fix
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
-          git diff --cached --quiet || git commit -m 'fix: render Eagle X Home content'
+          git diff --cached --quiet || git commit -m 'fix: render Home in MainTabContent'
           git push origin HEAD:main
+
       - name: Build debug APK from fixed source
         run: |
           chmod +x ./gradlew
           ./gradlew :app:assembleGithubDebug --stacktrace --no-daemon
+
       - name: Verify APK
         run: |
           test -f app/build/outputs/apk/github/debug/app-github-debug.apk
           sha256sum app/build/outputs/apk/github/debug/app-github-debug.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
