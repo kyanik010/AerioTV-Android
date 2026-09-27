@@ -1,0 +1,52 @@
+name: Fix Lumen Compose annotation
+
+on:
+  push:
+    branches:
+      - feat/lumen-mobile-redesign-from-59d033e
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore MainTabContent composable annotation
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt")
+          s = p.read_text()
+          needle = "\nprivate fun MainTabContent(\n"
+          replacement = "\n@Composable\nprivate fun MainTabContent(\n"
+          if replacement in s:
+              print("MainTabContent annotation already present")
+          elif needle in s:
+              p.write_text(s.replace(needle, replacement, 1))
+              print("Added @Composable to MainTabContent")
+          else:
+              raise SystemExit("MainTabContent declaration not found")
+          PY
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+          if git diff --cached --quiet; then
+            echo "No source change needed"
+            exit 0
+          fi
+          git commit -m "fix: restore composable annotation for MainTabContent"
+          git push
