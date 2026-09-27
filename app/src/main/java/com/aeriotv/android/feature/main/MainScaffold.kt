@@ -1765,7 +1765,9 @@ private fun MainTabContent(
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
             AppTab.Home -> {
-                val onDemandVm: OnDemandViewModel = hiltViewModel()
+                // Reuse the OnDemandViewModel already hoisted by MainScaffold.
+                // EagleXHomeScreen does not need a second Hilt owner lookup when
+                // the Home tab is mounted.
                 EagleXHomeScreen(
                     onSelectTab = onSelectTab,
                     onPlayMovie = onPlayMovie,
