@@ -2784,11 +2784,12 @@ internal fun visibleTabs(
     hasSeries: Boolean = hasVod,
 ): List<AppTab> = buildList {
     add(AppTab.LiveTV)
-    add(AppTab.Favorites)
-    add(AppTab.Movies)
-    add(AppTab.TVShows)
+    if (hasFavorites) add(AppTab.Favorites)
     if (hasRecordings) add(AppTab.DVR)
-    if (!splitVod && hasVod) add(AppTab.OnDemand)
+    if (splitVod) {
+        if (hasMovies) add(AppTab.Movies)
+        if (hasSeries) add(AppTab.TVShows)
+    } else if (hasVod) add(AppTab.OnDemand)
     // Audio remains implemented internally for the external-audio mixer, but its
     // standalone main-tab UI is intentionally hidden from customers.
     // Do NOT remove AppTab.Audio or AudioSourceTabContent: PlayerScreen still
