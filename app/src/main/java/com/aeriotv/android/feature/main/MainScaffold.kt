@@ -527,6 +527,9 @@ fun MainScaffold(
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }
+    // The first screen after a successful IPTV connection is a simple section menu.
+    // Existing AppTab screens remain untouched; selecting a card only exits this menu.
+    var showHome by rememberSaveable { mutableStateOf(true) }
     var initialTabApplied by rememberSaveable { mutableStateOf(false) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
@@ -788,6 +791,18 @@ fun MainScaffold(
     // bottom NavigationBar. D-pad friendly, overscan-safe, and mirrors the
     // tvOS TabView. Phone / tablet / fold keep the bottom nav below.
     val isTv = rememberLiveTvFormFactor().isTv
+    if (isTv && showHome) {
+        HomeSectionMenu(
+            availableTabs = tabs,
+            onSelect = { tab ->
+                selectedTab = tab
+                initialTabApplied = true
+                showHome = false
+            },
+        )
+        return
+    }
+
     if (isTv) {
         // tvOS layout parity (Archie 2026-05-28 reference shot): when the
         // mini-player is active, the top chrome (centered nav tabs +
@@ -986,7 +1001,7 @@ fun MainScaffold(
                         refreshing = anyBackgroundWork,
                         tabs = tabs,
                         selected = selectedTab,
-                        onSelect = { selectedTab = it; initialTabApplied = true },
+                        onSelect = { selectedTab = it; initialTabApplied = true; showHome = false },
                         focusRequester = topNavRequester,
                         tabEntryFocus = tabEntryFocus,
                         lastUpKeyMs = lastUpKeyMs,
@@ -1012,7 +1027,7 @@ fun MainScaffold(
                     onWatchLive = onWatchLive,
                     onWatchFromBeginning = onWatchFromBeginning,
                     onOpenSearch = onOpenSearch,
-                    onSelectTab = { selectedTab = it; initialTabApplied = true },
+                    onSelectTab = { selectedTab = it; initialTabApplied = true; showHome = false },
                     viewModel = viewModel,
                     visited = visitedTabs,
                     modifier = Modifier
