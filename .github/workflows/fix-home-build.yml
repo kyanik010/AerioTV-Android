@@ -1,0 +1,60 @@
+name: Fix Home Build
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: Apply only compile fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
+          s = p.read_text()
+          old1 = '        return@Scaffold\n'
+          old2 = '                horizontalAlignment = Alignment.Center,\n'
+          if s.count(old1) != 1:
+              raise SystemExit(f'Expected exactly one return@Scaffold, found {s.count(old1)}')
+          if s.count(old2) != 1:
+              raise SystemExit(f'Expected exactly one horizontal Alignment.Center, found {s.count(old2)}')
+          s = s.replace(old1, '        return@Box\n').replace(old2, '                horizontalAlignment = Alignment.CenterHorizontally,\n')
+          p.write_text(s)
+          PY
+          git diff --check
+      - name: Commit source fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+          git commit -m 'fix: correct Home scaffold compile errors'
+          git push origin HEAD:main
+      - name: Build debug APK from fixed commit
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleGithubDebug --stacktrace --no-daemon
+      - name: Verify APK
+        run: |
+          test -f app/build/outputs/apk/github/debug/app-github-debug.apk
+          sha256sum app/build/outputs/apk/github/debug/app-github-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AerioTV-Github-debug-fixed
+          path: app/build/outputs/apk/github/debug/app-github-debug.apk
+          if-no-files-found: error
