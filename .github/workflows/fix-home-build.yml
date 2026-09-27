@@ -1,0 +1,39 @@
+name: Fix Home build errors
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch exact compile errors
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
+          s = p.read_text()
+          old = '        return\n    }\n\n    // GH #20: auto-hide'
+          if old in s:
+              s = s.replace(old, '        return@Scaffold\n    }\n\n    // GH #20: auto-hide', 1)
+          s = s.replace('horizontalAlignment = Alignment.Center,', 'horizontalAlignment = Alignment.CenterHorizontally,')
+          p.write_text(s)
+      - name: Verify source
+        shell: bash
+        run: |
+          grep -n 'return@Scaffold' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+          if grep -n 'horizontalAlignment = Alignment.Center,' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt; then exit 1; fi
+      - name: Commit source fix and remove workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt .github/workflows/fix-home-build.yml
+          git rm .github/workflows/fix-home-build.yml
+          git commit -m 'fix: correct Home scaffold compile errors'
+          git push origin HEAD:main
