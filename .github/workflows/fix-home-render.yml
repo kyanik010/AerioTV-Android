@@ -21,33 +21,40 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
           p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
           s = p.read_text(encoding='utf-8')
-          old = '''            MainTabContent(
-                selectedTab = selectedTab,'''
-          new = '''            if (selectedTab == AppTab.Home) {
-                EagleXHomeNavigation(
-                    onSelect = { selectedTab = it; initialTabApplied = true },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                MainTabContent(
-                    selectedTab = selectedTab,'''
-          if s.count(old) != 1:
-              raise SystemExit(f'Expected exactly one MainTabContent call, found {s.count(old)}')
-          s = s.replace(old, new, 1)
-          old_end = '''                visited = visitedTabs,
-                modifier = Modifier.fillMaxSize(),
-            )
-            // No "Syncing" pill on phone:'''
-          new_end = '''                    visited = visitedTabs,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            // No "Syncing" pill on phone:'''
-          if s.count(old_end) != 1:
-              raise SystemExit(f'Expected exactly one MainTabContent end, found {s.count(old_end)}')
-          s = s.replace(old_end, new_end, 1)
+
+          pattern = r'(?m)^(\s*)MainTabContent\(\n\1    selectedTab = selectedTab,'
+          m = re.search(pattern, s)
+          if not m:
+              raise SystemExit('MainTabContent call anchor not found')
+          indent = m.group(1)
+          replacement = (
+              f'{indent}if (selectedTab == AppTab.Home) {{\n'
+              f'{indent}    EagleXHomeNavigation(\n'
+              f'{indent}        onSelect = {{ selectedTab = it; initialTabApplied = true }},\n'
+              f'{indent}        modifier = Modifier.fillMaxSize(),\n'
+              f'{indent}    )\n'
+              f'{indent}}} else {{\n'
+              f'{indent}    MainTabContent(\n'
+              f'{indent}        selectedTab = selectedTab,'
+          )
+          s = s[:m.start()] + replacement + s[m.end():]
+
+          end_pattern = r'(?m)^(\s*)visited = visitedTabs,\n\1modifier = Modifier\.fillMaxSize\(\),\n\1\)\n(\1// No "Syncing" pill on phone:)'
+          e = re.search(end_pattern, s)
+          if not e:
+              raise SystemExit('MainTabContent end anchor not found')
+          ei = e.group(1)
+          end_replacement = (
+              f'{ei}visited = visitedTabs,\n'
+              f'{ei}modifier = Modifier.fillMaxSize(),\n'
+              f'{ei})\n'
+              f'{ei}}}\n'
+              f'{e.group(2)}'
+          )
+          s = s[:e.start()] + end_replacement + s[e.end():]
           p.write_text(s, encoding='utf-8')
 
       - name: Verify source shape
@@ -55,6 +62,13 @@ jobs:
         run: |
           grep -n -A8 -B2 'if (selectedTab == AppTab.Home)' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
           grep -n -A4 'EagleXHomeNavigation(' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt').read_text()
+          assert s.count('if (selectedTab == AppTab.Home)') == 1
+          assert s.count('EagleXHomeNavigation(') == 2
+          print('Home render wiring verified')
+          PY
 
       - name: Commit fix and remove temporary workflow
         shell: bash
