@@ -1,49 +1,51 @@
 package com.aeriotv.android.feature.main
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,17 +53,18 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.aeriotv.android.R
 import com.aeriotv.android.core.network.DispatcharrVODMovie
 import com.aeriotv.android.core.network.DispatcharrVODSeries
 import com.aeriotv.android.feature.ondemand.OnDemandViewModel
 
-/**
- * Cinematic Home based on Lumen's Android TV Home structure:
- * full-bleed spotlight hero followed by horizontal media shelves.
- *
- * This is intentionally a UI layer. AerioTV's existing Xtream/Dispatcharr
- * catalog, player, activation and detail routes remain the source of truth.
- */
+private val LumenBg = Color(0xFF07090D)
+private val LumenPanel = Color(0xFF10141C)
+private val LumenPanel2 = Color(0xFF151A23)
+private val LumenText = Color(0xFFF7F8FB)
+private val LumenMuted = Color(0xFF929BAD)
+private val LumenLine = Color(0x17FFFFFF)
+
 @Composable
 fun LumenHomeContent(
     onMovieClick: (String) -> Unit,
@@ -73,10 +76,7 @@ fun LumenHomeContent(
     viewModel: OnDemandViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        viewModel.ensureLoaded()
-    }
+    LaunchedEffect(Unit) { viewModel.ensureLoaded() }
 
     val movies = remember(state.catalogMovies) {
         state.catalogMovies.values
@@ -90,383 +90,402 @@ fun LumenHomeContent(
             .sortedByDescending { it.year ?: 0 }
             .take(24)
     }
-    val heroItems = remember(movies, series) {
-        buildList {
-            addAll(movies.take(6).map { HeroItem.Movie(it) })
-            if (isEmpty()) addAll(series.take(6).map { HeroItem.Series(it) })
-        }
-    }
-    val hero = heroItems.firstOrNull()
+    val hero = movies.firstOrNull()
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF080A0F)),
+        modifier = Modifier.fillMaxSize().background(
+            Brush.verticalGradient(
+                listOf(Color(0xFF07090D), Color(0xFF090C12), Color(0xFF07090D))
+            )
+        )
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 56.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = 16.dp, end = 16.dp, top = 0.dp, bottom = 105.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
+            item { LumenTopBar(onSearch = onOpenSettings) }
             item {
                 LumenHero(
                     item = hero,
-                    onMovieClick = onMovieClick,
-                    onSeriesClick = onSeriesClick,
+                    onPlay = { hero?.let { onMovieClick(it.uuid) } },
                 )
             }
-
             if (movies.isNotEmpty()) {
                 item {
-                    LumenShelf(
-                        title = "Movies",
-                        items = movies,
-                        onClick = onMovieClick,
+                    LumenContinueSection(
+                        movies = movies.take(2),
+                        onMovieClick = onMovieClick,
                     )
                 }
-            }
-
-            if (series.isNotEmpty()) {
                 item {
-                    LumenSeriesShelf(
-                        title = "TV Shows",
-                        items = series,
-                        onClick = onSeriesClick,
+                    LumenCategorySection(
+                        onOpenLiveTv = onOpenLiveTv,
+                        onOpenMovies = onOpenMovies,
+                        onOpenSeries = onOpenSeries,
+                    )
+                }
+                item {
+                    LumenMovieSection(
+                        movies = movies,
+                        onMovieClick = onMovieClick,
+                    )
+                }
+            } else if (series.isNotEmpty()) {
+                item {
+                    LumenMovieSection(
+                        title = "مسلسلات مختارة",
+                        movies = emptyList(),
+                        series = series,
+                        onMovieClick = onMovieClick,
+                        onSeriesClick = onSeriesClick,
                     )
                 }
             }
         }
 
-        LumenHomeNavigation(
-            onOpenLiveTv = onOpenLiveTv,
-            onOpenMovies = onOpenMovies,
-            onOpenSeries = onOpenSeries,
-            onOpenSettings = onOpenSettings,
+        LumenBottomBar(
+            onHome = {},
+            onLive = onOpenLiveTv,
+            onMovies = onOpenMovies,
+            onSeries = onOpenSeries,
+            onFavorites = onOpenSettings,
         )
     }
 }
 
-private sealed interface HeroItem {
-    data class Movie(val value: DispatcharrVODMovie) : HeroItem
-    data class Series(val value: DispatcharrVODSeries) : HeroItem
+@Composable
+private fun LumenTopBar(onSearch: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(72.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(R.drawable.eagle_x_logo),
+                contentDescription = "Eagle X",
+                modifier = Modifier.size(39.dp).clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop,
+            )
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text("Eagle X", color = LumenText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Streaming Experience", color = LumenMuted, fontSize = 10.sp)
+            }
+        }
+        LumenCircleButton(Icons.Filled.Search, onSearch)
+    }
+}
+
+@Composable
+private fun LumenCircleButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+) {
+    val focused = remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color(0x12FFFFFF))
+            .border(1.dp, if (focused.value) Color.White else LumenLine, CircleShape)
+            .onFocusChanged { focused.value = it.isFocused }
+            .focusable()
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = LumenText, modifier = Modifier.size(19.dp))
+    }
 }
 
 @Composable
 private fun LumenHero(
-    item: HeroItem?,
-    onMovieClick: (String) -> Unit,
-    onSeriesClick: (Int) -> Unit,
+    item: DispatcharrVODMovie?,
+    onPlay: () -> Unit,
 ) {
-    val title = when (item) {
-        is HeroItem.Movie -> item.value.displayName
-        is HeroItem.Series -> item.value.displayName
-        null -> "AerioTV"
-    }
-    val image = when (item) {
-        is HeroItem.Movie -> item.value.posterUrl
-        is HeroItem.Series -> item.value.posterUrl
-        null -> null
-    }
-    val plot = when (item) {
-        is HeroItem.Movie -> item.value.plot
-        is HeroItem.Series -> item.value.plot
-        null -> "Your entertainment, in one cinematic home."
-    }
-    val year = when (item) {
-        is HeroItem.Movie -> item.value.year
-        is HeroItem.Series -> item.value.year
-        null -> null
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(470.dp)
-            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)),
+            .height(365.dp)
+            .clip(RoundedCornerShape(30.dp))
+            .border(1.dp, LumenLine, RoundedCornerShape(30.dp))
     ) {
-        if (!image.isNullOrBlank()) {
+        if (!item?.posterUrl.isNullOrBlank()) {
             AsyncImage(
-                model = image,
-                contentDescription = title,
+                model = item?.posterUrl,
+                contentDescription = item?.displayName,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
         } else {
-            Box(Modifier.fillMaxSize().background(Color(0xFF151A23)))
+            Box(Modifier.fillMaxSize().background(LumenPanel2))
         }
-
         Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color(0xFF080A0F),
-                            Color(0xC9080A0F),
-                            Color.Transparent,
-                        ),
-                    ),
-                ),
+            Modifier.fillMaxSize().background(
+                Brush.horizontalGradient(
+                    listOf(Color(0xFA07090D), Color(0xB807090D), Color(0x1A07090D))
+                )
+            )
         )
         Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color(0xE6080A0F)),
-                    ),
-                ),
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(Color(0x2207090D), Color.Transparent, Color(0xF207090D))
+                )
+            )
         )
-
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .width(560.dp)
-                .padding(start = 42.dp, end = 24.dp, bottom = 34.dp),
+            modifier = Modifier.align(Alignment.BottomStart).padding(24.dp).width(320.dp)
         ) {
             Text(
-                text = title,
-                color = Color.White,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+                "Featured tonight",
+                color = Color(0xFFC9D4E8),
+                fontSize = 11.sp,
+                letterSpacing = 1.2.sp,
+                fontWeight = FontWeight.Medium,
             )
-            if (year != null) {
-                Text(
-                    text = year.toString(),
-                    color = Color(0xFFA7AFBF),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 7.dp),
-                )
-            }
-            if (!plot.isNullOrBlank()) {
-                Text(
-                    text = plot,
-                    color = Color(0xFFA7AFBF),
-                    fontSize = 13.sp,
-                    lineHeight = 19.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 7.dp),
-                )
-            }
-
+            Text(
+                "سينما في مكان واحد",
+                color = LumenText,
+                fontSize = 31.sp,
+                lineHeight = 34.sp,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Text(
+                "اكتشف الأفلام والمسلسلات والقنوات في تجربة مشاهدة هادئة وسريعة.",
+                color = Color(0xFFB7BFCE),
+                fontSize = 12.sp,
+                lineHeight = 20.sp,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 8.dp),
+            )
             Row(
-                modifier = Modifier.padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                modifier = Modifier.padding(top = 17.dp)
             ) {
-                LumenAction(
-                    icon = Icons.Filled.PlayArrow,
-                    text = "Play",
-                    onClick = {
-                        when (item) {
-                            is HeroItem.Movie -> onMovieClick(item.value.uuid)
-                            is HeroItem.Series -> onSeriesClick(item.value.id)
-                            null -> Unit
-                        }
-                    },
-                )
-                LumenAction(
-                    icon = Icons.Filled.FavoriteBorder,
-                    text = "My List",
-                    onClick = {},
-                    secondary = true,
-                )
+                LumenHeroButton("تشغيل", Icons.Filled.PlayArrow, false, onPlay)
+                LumenHeroButton("قائمتي", Icons.Filled.FavoriteBorder, true, {})
             }
         }
     }
 }
 
 @Composable
-private fun LumenAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun LumenHeroButton(
     text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    secondary: Boolean,
     onClick: () -> Unit,
-    secondary: Boolean = false,
 ) {
     val focused = remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .height(42.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(if (secondary) Color(0x1AFFFFFF) else Color(0xFFF4F6FA))
+            .border(1.dp, if (focused.value) Color.White else LumenLine, RoundedCornerShape(13.dp))
+            .onFocusChanged { focused.value = it.isFocused }
+            .focusable()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 17.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = if (secondary) Color.White else Color(0xFF0A0D13), modifier = Modifier.size(17.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text, color = if (secondary) Color.White else Color(0xFF0A0D13), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun LumenContinueSection(
+    movies: List<DispatcharrVODMovie>,
+    onMovieClick: (String) -> Unit,
+) {
+    LumenSectionHead("متابعة المشاهدة", "عرض الكل")
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 3.dp),
+    ) {
+        items(movies, key = { it.uuid }) { movie ->
+            LumenContinueCard(movie, onMovieClick)
+        }
+    }
+    Spacer(Modifier.height(1.dp))
+}
+
+@Composable
+private fun LumenContinueCard(movie: DispatcharrVODMovie, onMovieClick: (String) -> Unit) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(13.dp))
-            .background(if (secondary) Color(0xCC151A23) else Color.White)
-            .border(
-                1.dp,
-                if (focused.value) Color(0xFF4FC8E8) else Color.Transparent,
-                RoundedCornerShape(13.dp),
-            )
-            .clickable(onClick = onClick)
-            .onFocusChanged { focused.value = it.isFocused }
+            .width(245.dp)
+            .height(116.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.dp, LumenLine, RoundedCornerShape(20.dp))
+            .clickable { onMovieClick(movie.uuid) }
             .focusable()
-            .padding(horizontal = 18.dp, vertical = 11.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                icon,
-                contentDescription = text,
-                tint = if (secondary) Color.White else Color.Black,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(7.dp))
-            Text(
-                text = text,
-                color = if (secondary) Color.White else Color.Black,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-    }
-}
-
-@Composable
-private fun LumenShelf(
-    title: String,
-    items: List<DispatcharrVODMovie>,
-    onClick: (String) -> Unit,
-) {
-    Column(Modifier.fillMaxWidth().padding(top = 10.dp)) {
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
+        AsyncImage(
+            model = movie.posterUrl,
+            contentDescription = movie.displayName,
+            modifier = Modifier.fillMaxSize().alpha(0.64f),
+            contentScale = ContentScale.Crop,
         )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 28.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            items(items, key = { it.uuid }) { movie ->
-                LumenPosterCard(
-                    title = movie.displayName,
-                    image = movie.posterUrl,
-                    onClick = { onClick(movie.uuid) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LumenSeriesShelf(
-    title: String,
-    items: List<DispatcharrVODSeries>,
-    onClick: (Int) -> Unit,
-) {
-    Column(Modifier.fillMaxWidth().padding(top = 10.dp)) {
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
-        )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 28.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            items(items, key = { it.id }) { series ->
-                LumenPosterCard(
-                    title = series.displayName,
-                    image = series.posterUrl,
-                    onClick = { onClick(series.id) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LumenPosterCard(
-    title: String,
-    image: String?,
-    onClick: () -> Unit,
-) {
-    val focused = remember { mutableStateOf(false) }
-    Column(
-        modifier = Modifier
-            .width(132.dp)
-            .onFocusChanged { focused.value = it.isFocused }
-            .focusable()
-            .clickable(onClick = onClick),
-    ) {
         Box(
-            Modifier
-                .width(132.dp)
-                .height(190.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .border(
-                    2.dp,
-                    if (focused.value) Color(0xFF4FC8E8) else Color.Transparent,
-                    RoundedCornerShape(12.dp),
-                ),
-        ) {
-            if (!image.isNullOrBlank()) {
-                AsyncImage(
-                    model = image,
-                    contentDescription = title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Box(Modifier.fillMaxSize().background(Color(0xFF151A23)))
+            Modifier.fillMaxSize().background(
+                Brush.horizontalGradient(listOf(Color(0xEF080B10), Color(0x80080B10), Color.Transparent))
+            )
+        )
+        Column(Modifier.align(Alignment.CenterStart).padding(15.dp)) {
+            Text(movie.displayName, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("فيلم · متابعة المشاهدة", color = Color(0xFFAEB7C7), fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))
+            Box(
+                Modifier.padding(top = 13.dp).width(205.dp).height(3.dp).clip(RoundedCornerShape(3.dp)).background(Color(0x29FFFFFF))
+            ) {
+                Box(Modifier.fillMaxWidth(0.62f).fillMaxSize().background(Color(0xFFF2F4F8)))
             }
         }
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 7.dp),
-        )
     }
 }
 
 @Composable
-private fun BoxScope.LumenHomeNavigation(
+private fun LumenCategorySection(
     onOpenLiveTv: () -> Unit,
     onOpenMovies: () -> Unit,
     onOpenSeries: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .padding(start = 22.dp, top = 18.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xB010141C))
-            .border(1.dp, Color(0x2AFFFFFF), RoundedCornerShape(18.dp))
-            .padding(horizontal = 7.dp, vertical = 7.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        LumenNavButton("Live TV", Icons.Filled.LiveTv, onOpenLiveTv)
-        LumenNavButton("Movies", Icons.Outlined.Movie, onOpenMovies)
-        LumenNavButton("Series", Icons.Outlined.Tv, onOpenSeries)
-        LumenNavButton("Settings", Icons.Filled.Settings, onOpenSettings)
+    LumenSectionHead("اختَر ما تريد", "المكتبة")
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        LumenCategory("القنوات", Icons.Filled.LiveTv, Modifier.weight(1f), onOpenLiveTv)
+        LumenCategory("الأفلام", Icons.Outlined.Movie, Modifier.weight(1f), onOpenMovies)
+        LumenCategory("المسلسلات", Icons.Outlined.Tv, Modifier.weight(1f), onOpenSeries)
     }
 }
 
 @Composable
-private fun LumenNavButton(
-    label: String,
+private fun LumenCategory(
+    title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier,
     onClick: () -> Unit,
 ) {
     val focused = remember { mutableStateOf(false) }
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (focused.value) Color(0x334FC8E8) else Color.Transparent)
+        modifier = modifier.height(74.dp).clip(RoundedCornerShape(17.dp))
+            .background(Brush.linearGradient(listOf(Color(0xFF161C26), Color(0xFF10141B))))
+            .border(1.dp, if (focused.value) Color.White else LumenLine, RoundedCornerShape(17.dp))
             .onFocusChanged { focused.value = it.isFocused }
-            .focusable()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .focusable().clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(19.dp))
-        Text(label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Icon(icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
+        Text(title, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+@Composable
+private fun LumenMovieSection(
+    title: String = "أفلام مختارة",
+    movies: List<DispatcharrVODMovie>,
+    series: List<DispatcharrVODSeries> = emptyList(),
+    onMovieClick: (String) -> Unit,
+    onSeriesClick: (Int) -> Unit = {},
+) {
+    LumenSectionHead(title, "المزيد")
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 4.dp)) {
+        if (movies.isNotEmpty()) {
+            items(movies, key = { it.uuid }) { movie ->
+                LumenPosterCard(movie.displayName, movie.posterUrl) { onMovieClick(movie.uuid) }
+            }
+        } else {
+            items(series, key = { it.id }) { item ->
+                LumenPosterCard(item.displayName, item.posterUrl) { onSeriesClick(item.id) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LumenSectionHead(title: String, action: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 29.dp, bottom = 13.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Text(title, color = LumenText, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(action, color = LumenMuted, fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun LumenPosterCard(title: String, image: String?, onClick: () -> Unit) {
+    val focused = remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier.width(132.dp).height(190.dp).clip(RoundedCornerShape(18.dp))
+            .background(LumenPanel2)
+            .border(1.dp, if (focused.value) Color.White else LumenLine, RoundedCornerShape(18.dp))
+            .onFocusChanged { focused.value = it.isFocused }
+            .focusable().clickable(onClick = onClick)
+    ) {
+        if (!image.isNullOrBlank()) {
+            AsyncImage(model = image, contentDescription = title, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        }
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xE0040609)))))
+        Column(Modifier.align(Alignment.BottomStart).padding(10.dp)) {
+            Text(title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("فيلم", color = Color(0xFFAEB8C9), fontSize = 9.sp, modifier = Modifier.padding(top = 3.dp))
+        }
+    }
+}
+ 
+@Composable
+private fun LumenBottomBar(
+    onHome: () -> Unit,
+    onLive: () -> Unit,
+    onMovies: () -> Unit,
+    onSeries: () -> Unit,
+    onFavorites: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(65.dp).clip(RoundedCornerShape(22.dp))
+                .background(Color(0xE00F131B))
+                .border(1.dp, LumenLine, RoundedCornerShape(22.dp))
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LumenNavItem("الرئيسية", Icons.Filled.Home, true, onHome)
+            LumenNavItem("القنوات", Icons.Filled.LiveTv, false, onLive)
+            LumenNavItem("الأفلام", Icons.Outlined.Movie, false, onMovies)
+            LumenNavItem("المسلسلات", Icons.Outlined.Tv, false, onSeries)
+            LumenNavItem("المفضلة", Icons.Filled.FavoriteBorder, false, onFavorites)
+        }
+    }
+}
+
+@Composable
+private fun LumenNavItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, active: Boolean, onClick: () -> Unit) {
+    val focused = remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.width(54.dp).onFocusChanged { focused.value = it.isFocused }.focusable().clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier.size(38.dp, 27.dp).clip(RoundedCornerShape(10.dp))
+                .background(if (active || focused.value) Color(0x17FFFFFF) else Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = if (active || focused.value) Color.White else Color(0xFF7F899B), modifier = Modifier.size(18.dp))
+        }
+        Text(label, color = if (active || focused.value) Color.White else Color(0xFF7F899B), fontSize = 9.sp)
     }
 }
