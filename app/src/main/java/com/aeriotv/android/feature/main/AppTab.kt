@@ -27,6 +27,7 @@ enum class AppTab(
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
 ) {
+    Home("home", "Home", Icons.Filled.LiveTv, Icons.Outlined.LiveTv),
     LiveTV("livetv", "Live TV", Icons.Filled.LiveTv, Icons.Outlined.LiveTv),
     Favorites("favorites", "Favorites", Icons.Filled.Favorite, Icons.Outlined.Favorite),
     DVR("dvr", "DVR", Icons.Filled.RadioButtonChecked, Icons.Outlined.RadioButtonChecked),
@@ -42,6 +43,7 @@ enum class AppTab(
 
 fun AppTab.localizedLabel(language: com.aeriotv.android.core.preferences.AppLanguage): String =
     if (language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH) label else when (this) {
+        AppTab.Home -> "الرئيسية"
         AppTab.LiveTV -> "التلفزيون المباشر"
         AppTab.Favorites -> "المفضلة"
         AppTab.DVR -> "التسجيلات"
