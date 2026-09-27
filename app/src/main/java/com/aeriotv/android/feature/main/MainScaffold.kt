@@ -1138,6 +1138,18 @@ fun MainScaffold(
         return
     }
 
+    if (showHome) {
+        HomeSectionMenu(
+            availableTabs = tabs,
+            onSelect = { tab ->
+                selectedTab = tab
+                initialTabApplied = true
+                showHome = false
+            },
+        )
+        return
+    }
+
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
     // scroll up. A NestedScrollConnection on the content host sees every
     // tab's Lazy*/ScrollView deltas without hoisting any per-tab scroll
