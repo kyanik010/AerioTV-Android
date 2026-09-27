@@ -387,7 +387,7 @@ private fun LumenPosterCard(
     Column(
         modifier = Modifier
             .width(132.dp)
-            .onFocusChanged { focused = it.isFocused }
+            .onFocusChanged { focused.value = it.isFocused }
             .focusable()
             .clickable(onClick = onClick),
     ) {
@@ -398,7 +398,7 @@ private fun LumenPosterCard(
                 .clip(RoundedCornerShape(12.dp))
                 .border(
                     2.dp,
-                    if (focused) Color(0xFF4FC8E8) else Color.Transparent,
+                    if (focused.value) Color(0xFF4FC8E8) else Color.Transparent,
                     RoundedCornerShape(12.dp),
                 ),
         ) {
@@ -456,10 +456,11 @@ private fun LumenNavButton(
     onClick: () -> Unit,
 ) {
     val focused = remember { mutableStateOf(false) }
+    Column(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(if (focused.value) Color(0x334FC8E8) else Color.Transparent)
-            .onFocusChanged { focused = it.isFocused }
+            .onFocusChanged { focused.value = it.isFocused }
             .focusable()
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
