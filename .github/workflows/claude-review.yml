@@ -3,9 +3,6 @@ name: Claude Code Agent
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches:
-      - feat/lumen-mobile-redesign-from-59d033e
 
 permissions:
   contents: write
