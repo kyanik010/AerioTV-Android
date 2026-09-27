@@ -47,3 +47,5 @@ jobs:
 
 # CI verification branch
 # build trigger 3
+
+# CI trigger after resource import fix
