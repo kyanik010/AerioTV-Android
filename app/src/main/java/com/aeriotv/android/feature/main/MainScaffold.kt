@@ -1129,7 +1129,6 @@ fun MainScaffold(
                         fullScreenOverlay.value?.invoke()
             }
         }
-        }
     }
 
     if (!isTv) {
