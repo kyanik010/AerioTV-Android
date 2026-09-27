@@ -569,7 +569,7 @@ fun MainScaffold(
         // Search is never IN `tabs` (it's the floating bar button, not a
         // pill) but is a perfectly valid selection - don't bounce it.
         if (selectedTab !in tabs && selectedTab != AppTab.Search) {
-            selectedTab = AppTab.LiveTV
+            selectedTab = AppTab.Home
         }
     }
 
@@ -633,7 +633,7 @@ fun MainScaffold(
     // priority there; this only fires on a tab root.
     val homeTab = AppTab.entries.firstOrNull { it.name == defaultTabPref }
         ?.let { if (it == AppTab.OnDemand && splitVod) AppTab.Movies else it }
-        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.LiveTV
+        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.Home
     // TV: the leaving tab's content nodes vanish, and Compose's fallback
     // hands focus to the LEFTMOST pill (Live TV) while the home tab is
     // selected (Logan 2026-09-02 screenshot). Ask for the home pill instead;
