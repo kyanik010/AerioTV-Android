@@ -392,7 +392,7 @@ fun MainScaffold(
         val live = visibleTabs(
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
-            hasFavorites = false,
+            hasFavorites = if (isTvShell) false else hasRenderableFavorites,
             hasVod = hasVodContent,
             hasRecordings = hasRecordings,
             splitVod = splitVod,
