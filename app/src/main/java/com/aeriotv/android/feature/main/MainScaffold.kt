@@ -497,8 +497,7 @@ fun MainScaffold(
                     programmeEndMs = now?.endMillis ?: 0L,
                 ),
             )
-            kotlinx.coroutines.delay(60_000L)
-        }
+            kotlinx.coroutines.delay(60_000L)        }
     }
     // GH #33: browse for controllable AerioTV TVs at the SCAFFOLD level (phone
     // only; the TV is a host, not a client) so the floating "Control TV" pill
@@ -997,8 +996,7 @@ fun MainScaffold(
                         focusRequester = topNavRequester,
                         tabEntryFocus = tabEntryFocus,
                         lastUpKeyMs = lastUpKeyMs,
-                        pillRequesters = pillRequesters,
-                        isTabWarm = { it in visitedTabs },
+                        pillRequesters = pillRequesters,                        isTabWarm = { it in visitedTabs },
                         onDrawnBottomChanged = { barDrawnBottomPx = it },
                     )
                 }
@@ -1177,6 +1175,10 @@ fun MainScaffold(
     val viewport = rememberViewport()
     val topTabBar = viewport.prefersTopTabBar
     val tabBarScale = viewport.topTabBarScale
+    // The Home screen is a dedicated navigation surface. It must not show the
+    // legacy global tab strip above/below it; the five Home cards are its
+    // navigation. Other sections keep their normal tab chrome.
+    val showTabChrome = selectedTab != AppTab.Home
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -1200,10 +1202,14 @@ fun MainScaffold(
       val navBarInset = WindowInsets.navigationBars.asPaddingValues()
           .calculateBottomPadding()
       androidx.compose.runtime.CompositionLocalProvider(
-          LocalTabBarBottomInset provides if (topTabBar) 16.dp else 96.dp + navBarInset,
+          LocalTabBarBottomInset provides when {
+              selectedTab == AppTab.Home -> 0.dp
+              topTabBar -> 16.dp
+              else -> 96.dp + navBarInset
+          },
       ) {
       androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-        if (topTabBar) {
+        if (topTabBar && showTabChrome) {
             // Keeps the phone floating mini's top corners below this bar.
             androidx.compose.runtime.DisposableEffect(Unit) {
                 onDispose {
@@ -1407,7 +1413,7 @@ fun MainScaffold(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                if (!topTabBar) {
+                if (!topTabBar && showTabChrome) {
                     // iOS 26 parity (Logan 2026-09-09): scrolling down does not
                     // hide the bar, it MINIMIZES it to a small pill in the
                     // bottom-left corner showing the active tab's icon. Tapping
@@ -1497,8 +1503,7 @@ fun MainScaffold(
                 ) {
                     companionRemote.disconnect()
                 }
-                showCompanionPicker = false
-            },
+                showCompanionPicker = false            },
         )
     }
     // A fresh connection made from the picker -> close it; the Controlling card
@@ -1997,8 +2002,7 @@ private fun MainTabContent(
                     onMovieClick = { uuid -> onMovieClick(uuid) },
                     onSeriesClick = { id -> onSeriesClick(id) },
                     onEpisodeResume = onEpisodeResume,
-                    onResumeMovie = onResumeMovie,
-                    onPlayMovie = onPlayMovie,
+                    onResumeMovie = onResumeMovie,                    onPlayMovie = onPlayMovie,
                     onPlayMovieFromStart = onPlayMovieFromStart,
                     onEpisodeResumeFromStart = onEpisodeResumeFromStart,
                 )
@@ -2498,468 +2502,3 @@ private fun SettingsTabContent(
     val route = nav.current
     // Phase B3: the tablet list-detail host. Expanded width alone is not the
     // gate -- a landscape phone is "expanded" but far too short -- and TV keeps
-    // the stacked layout until B4 lands the rail with its focus contract.
-    val isTvDevice = rememberIsTvDevice()
-    val viewport = rememberViewport()
-    // Settings phase 2: the gate is MEDIUM width and up, so an unfolded
-    // foldable gets the sidebar. `settingsTwoPane` is Settings' own flag; the
-    // window-wide `isTwoPaneEligible` (and the tab-bar placement built on it)
-    // is deliberately unchanged.
-    val paneEligible = viewport.settingsTwoPane
-    // Same eligibility, two hosts: touch tablets get the tap sidebar (B3), TV
-    // gets the 10-foot rail with its focus contract (B4).
-    val tabletTwoPane = paneEligible && !isTvDevice
-    val tvRail = paneEligible && isTvDevice
-    val twoPane = tabletTwoPane || tvRail
-    var selection by rememberSettingsPaneSelection(nav = nav, twoPane = twoPane, initial = if (tvRail) SettingsRoute.Root else DefaultSettingsPaneSelection)
-    // True for the route the pane is BASELINED on; pushes above it render as
-    // ordinary screens and keep their own back affordance.
-    val inPane = twoPane && route == null
-    val updaterEnabled = hiltViewModel<com.aeriotv.android.feature.update.UpdateViewModel>()
-        .isEnabled
-    // Sidebar / rail Sync row reads On or Off rather than a description.
-    val syncEnabled by hiltViewModel<com.aeriotv.android.feature.settings.SettingsViewModel>()
-        .syncMasterEnabled
-        .collectAsStateWithLifecycle(initialValue = false)
-    val addPlaylistStep: AddPlaylistStep = when (val r = route) {
-        is SettingsRoute.AddPlaylist -> when (val st = r.step) {
-            is AddPlaylistWizardStep.ChooseType -> AddPlaylistStep.ChooseType
-            is AddPlaylistWizardStep.Configure -> AddPlaylistStep.Configure(st.sourceType)
-        }
-        else -> AddPlaylistStep.None
-    }
-    val playlistVm = playlistViewModel
-    val playlistState by playlistVm.state.collectAsStateWithLifecycle()
-
-    // Screenshot deep link (aeriotv://settings/<page>). MainScaffold has already
-    // selected the Settings tab, which is what composed us; translate the page
-    // into this host's own terms. In a two-pane host a pane-baseline page is the
-    // SELECTION and everything else is a push above Playlists, matching what the
-    // user would have produced by hand; the stacked phone layout just pushes.
-    // The playlist pages wait for an active playlist, which is why the request
-    // is a StateFlow and this effect is keyed on the playlist id as well.
-    val pendingSettingsPage by playlistVm.settingsPageRequest.collectAsStateWithLifecycle()
-    // Bumped when a deep link changes the rail's selection: the rail only pulls
-    // focus into the pane on a PUSH, so a plain selection change would leave
-    // focus wherever it was (the tab pill on a cold launch).
-    var deepLinkPaneFocus by remember { mutableIntStateOf(0) }
-    LaunchedEffect(pendingSettingsPage, twoPane, tvRail, playlistState.playlist?.id) {
-        val page = pendingSettingsPage ?: return@LaunchedEffect
-        val activeId = playlistState.playlist?.id
-        // No playlist yet: leave the request pending and retry when one lands.
-        if (activeId == null && settingsDeepLinkPageNeedsPlaylist(page)) return@LaunchedEffect
-        val target = settingsRouteForDeepLinkPage(page, activeId)
-        nav.popToRoot()
-        if (twoPane) {
-            when {
-                target == null ->
-                    selection = if (tvRail) SettingsRoute.Root else DefaultSettingsPaneSelection
-                target.isPaneBaseline -> selection = target
-                else -> {
-                    // Playlist detail / edit are pushes; baseline them on the
-                    // Playlists pane so Back walks out the way it normally would.
-                    selection = SettingsRoute.Playlists
-                    nav.push(target)
-                }
-            }
-            deepLinkPaneFocus++
-        } else if (target != null) {
-            nav.push(target)
-        }
-        playlistVm.consumeSettingsPage()
-    }
-    // Watch for a playlist id flip while we're inside the Add Playlist flow;
-    // that means the user's onboarding Save succeeded and the new row was
-    // promoted active. Close the embedded flow.
-    val startId = remember(addPlaylistStep) {
-        if (addPlaylistStep != AddPlaylistStep.None) playlistState.playlist?.id else null
-    }
-    LaunchedEffect(playlistState.playlist?.id) {
-        if (addPlaylistStep != AddPlaylistStep.None &&
-            startId != null &&
-            playlistState.playlist?.id != startId
-        ) {
-            nav.pop()
-        }
-    }
-    androidx.activity.compose.BackHandler(enabled = nav.canPop) {
-        val cur = nav.current
-        // The wizard's stages advance IN PLACE rather than nesting, so Back
-        // from Configure returns to ChooseType instead of leaving the flow.
-        if (cur is SettingsRoute.AddPlaylist && cur.step is AddPlaylistWizardStep.Configure) {
-            nav.replaceTop(SettingsRoute.AddPlaylist(AddPlaylistWizardStep.ChooseType))
-        } else {
-            nav.pop()
-        }
-    }
-    // TV focus retention. The top nav uses selection-follows-focus (focusing
-    // the Live TV pill switches to the guide). When the user clicks a settings
-    // row, the sub-screen replaces the list and the focused row is removed --
-    // Compose then falls focus back to the first focusable in the tree, the
-    // nav pill row, whose Live TV pill grabs focus and bounces the user to the
-    // guide (the "clicking any setting goes back to the guide" bug). Fix: pull
-    // focus INTO the settings content whenever a sub-screen appears so it never
-    // lands on the nav. Keyed on the visible sub-screen; the root list (key
-    // null) is left alone so the pill -> DOWN -> list traversal is unchanged.
-    val settingsContentFocus = remember { FocusRequester() }
-    // Plan B2: "fire it only for full-screen takeovers entering or exiting".
-    // In a two-pane host a push renders INSIDE the pane with the rail still up,
-    // so pulling focus to this outer group would land it on the rail's first
-    // row and orphan the push (traced on the Streamer 2026-08-05). The rail
-    // host moves focus into the pane itself for those; this stays responsible
-    // for the stacked layouts and for takeovers.
-    val subScreenKey: String? = when {
-        !twoPane -> nav.focusKey
-        route != null && isSettingsTakeover(route) -> nav.focusKey
-        else -> null
-    }
-    var prevSubScreenKey by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(subScreenKey) {
-        // Pull focus into the content both when a sub-screen OPENS and when it
-        // CLOSES back to the root list, so focus never lingers on a nav pill
-        // (where the involuntary fallback parks it). Skip the very first
-        // composition (prev == cur == null) so switching INTO Settings still
-        // lands on the Settings pill, preserving the pill -> DOWN -> list flow.
-        val entering = subScreenKey != null
-        val exitingToRoot = subScreenKey == null && prevSubScreenKey != null
-        if (entering || exitingToRoot) runCatching { settingsContentFocus.requestFocus() }
-        prevSubScreenKey = subScreenKey
-    }
-    // Phase B3: one renderer for a route, used by BOTH the stacked phone layout
-    // and the tablet host's detail pane, so the two can never diverge.
-    val renderRoute: @Composable (SettingsRoute?) -> Unit = { r ->
-    when (r) {
-        null -> SettingsScreen(
-            onSectionClick = { nav.push(SettingsRoute.Section(it)) },
-            onOpenPlaylistDetail = { id -> nav.push(SettingsRoute.PlaylistDetail(id)) },
-            onOpenPlaylists = { nav.push(SettingsRoute.Playlists) },
-            onAddPlaylist = {
-                nav.push(SettingsRoute.AddPlaylist(AddPlaylistWizardStep.ChooseType))
-            },
-            onOpenLicenses = { nav.push(SettingsRoute.Licenses) },
-            viewModel = playlistVm,
-        )
-        is SettingsRoute.About -> SettingsScreen(
-            onSectionClick = { nav.push(SettingsRoute.Section(it)) },
-            onBack = { nav.pop() },
-            onOpenLicenses = { nav.push(SettingsRoute.Licenses) },
-            viewModel = playlistVm,
-            content = SettingsRootContent.AboutOnly,
-        )
-        is SettingsRoute.Root -> SettingsScreen(
-            onSectionClick = { nav.push(SettingsRoute.Section(it)) },
-            onOpenPlaylistDetail = { id -> nav.push(SettingsRoute.PlaylistDetail(id)) },
-            onOpenPlaylists = { nav.push(SettingsRoute.Playlists) },
-            onAddPlaylist = {
-                nav.push(SettingsRoute.AddPlaylist(AddPlaylistWizardStep.ChooseType))
-            },
-            onOpenLicenses = { nav.push(SettingsRoute.Licenses) },
-            viewModel = playlistVm,
-        )
-        is SettingsRoute.AddPlaylist -> when (val st = r.step) {
-            is AddPlaylistWizardStep.Configure -> ConfigureSourceScreen(
-                sourceType = st.sourceType,
-                onBack = {
-                    nav.replaceTop(SettingsRoute.AddPlaylist(AddPlaylistWizardStep.ChooseType))
-                },
-                viewModel = playlistVm,
-            )
-            is AddPlaylistWizardStep.ChooseType -> ChooseSourceTypeScreen(
-                onBack = { nav.pop() },
-                onChoose = { type ->
-                    // Start a FRESH draft so the add creates a NEW row and can't
-                    // carry over the active server's bootstrap-prefilled API key
-                    // (which would win over typed user/pass and re-add the active
-                    // server's account). Mirrors the onboarding CHOOSE_TYPE path.
-                    playlistVm.startNewSource(type)
-                    nav.replaceTop(
-                        SettingsRoute.AddPlaylist(AddPlaylistWizardStep.Configure(type)),
-                    )
-                },
-            )
-        }
-        is SettingsRoute.Playlists ->
-            if (inPane) {
-                // As a PANE this is the sidebar's Playlists item, so it shows
-                // the root's playlist block (switch / open / Add / Manage);
-                // Manage Playlists then pushes the reorder page above it.
-                SettingsScreen(
-                    onSectionClick = { nav.push(SettingsRoute.Section(it)) },
-                    onOpenPlaylistDetail = { id ->
-                        nav.push(SettingsRoute.PlaylistDetail(id))
-                    },
-                    onOpenPlaylists = { nav.push(SettingsRoute.Playlists) },
-                    onAddPlaylist = {
-                        nav.push(SettingsRoute.AddPlaylist(AddPlaylistWizardStep.ChooseType))
-                    },
-                    viewModel = playlistVm,
-                    content = SettingsRootContent.PlaylistsOnly,
-                )
-            } else {
-                com.aeriotv.android.feature.settings.PlaylistsScreen(
-                    onBack = { nav.pop() },
-                    onAddPlaylist = {
-                        nav.push(SettingsRoute.AddPlaylist(AddPlaylistWizardStep.ChooseType))
-                    },
-                    onOpenPlaylistDetail = { id ->
-                        nav.push(SettingsRoute.PlaylistDetail(id))
-                    },
-                    viewModel = playlistVm,
-                )
-            }
-        is SettingsRoute.EditPlaylist -> com.aeriotv.android.feature.settings.EditPlaylistScreen(
-            onBack = { nav.pop() },
-            viewModel = playlistVm,
-        )
-        is SettingsRoute.PlaylistDetail ->
-            com.aeriotv.android.feature.settings.PlaylistDetailScreen(
-                onBack = { nav.pop() },
-                onEdit = { nav.push(SettingsRoute.EditPlaylist(r.playlistId)) },
-                playlistId = r.playlistId,
-                viewModel = playlistVm,
-            )
-        is SettingsRoute.AddMoreCategories -> AddMoreCategoriesScreen(onBack = { nav.pop() })
-        is SettingsRoute.LogViewer -> com.aeriotv.android.feature.settings.LogViewerScreen(
-            onBack = { nav.pop() },
-        )
-        is SettingsRoute.Licenses -> com.aeriotv.android.feature.settings.LicensesScreen(
-            onBack = { nav.pop() },
-        )
-        is SettingsRoute.Section -> when (r.section) {
-            SettingsSection.LiveTV -> LiveTvSettingsScreen(
-                onBack = { nav.pop() },
-                onOpenAddMoreCategories = { nav.push(SettingsRoute.AddMoreCategories) },
-            )
-            SettingsSection.Player -> PlayerSettingsScreen(onBack = { nav.pop() })
-            SettingsSection.MoviesAndTvShows ->
-                MoviesAndTvShowsSettingsScreen(onBack = { nav.pop() })
-            SettingsSection.Appearance -> AppearanceSettingsScreen(onBack = { nav.pop() })
-            SettingsSection.General -> GeneralSettingsScreen(onBack = { nav.pop() })
-            SettingsSection.RemoteControl ->
-                com.aeriotv.android.feature.settings.RemoteControlSettingsScreen(
-                    onBack = { nav.pop() },
-                )
-            SettingsSection.AppUpdates ->
-                com.aeriotv.android.feature.settings.AppUpdatesScreen(onBack = { nav.pop() })
-            SettingsSection.Sync -> com.aeriotv.android.feature.settings.SyncSettingsScreen(
-                onBack = { nav.pop() },
-            )
-            SettingsSection.DvrSettings -> DvrSettingsScreen(onBack = { nav.pop() })
-            SettingsSection.Developer -> DeveloperSettingsScreen(
-                onBack = { nav.pop() },
-                onOpenLogViewer = { nav.push(SettingsRoute.LogViewer) },
-            )
-            // The About page is the root's About block rendered on its own,
-            // so the copy cannot drift from what the pane hosts already show.
-            SettingsSection.About -> SettingsScreen(
-                onSectionClick = { nav.push(SettingsRoute.Section(it)) },
-                onBack = { nav.pop() },
-                onOpenLicenses = { nav.push(SettingsRoute.Licenses) },
-                viewModel = playlistVm,
-                content = SettingsRootContent.AboutOnly,
-            )
-        }
-    }
-    }
-
-    // Fold awareness. Every geometry comes from the OS-reported FoldingFeature,
-    // and the boundary always lands ON the crease so no pane is bent:
-    //
-    //  - VERTICAL crease: the window splits left/right, so the existing
-    //    side-by-side layout just moves its boundary to the hinge.
-    //  - HORIZONTAL crease, ANY state: Settings keeps the full display side by
-    //    side (Logan's call), so the split is the ordinary fixed one; only an
-    //    OCCLUDING hinge changes anything, by taking the hairline away.
-    //
-    // The host's Row/Column starts at the window's leading/top edge, which is
-    // the same origin the feature bounds use. Recomposing on a new FoldInfo
-    // re-lays-out only; `selection` and the nav stack live above this and are
-    // untouched, and `twoPane` does not flip, so no posture mapping runs.
-    val fold = com.aeriotv.android.ui.adaptive.rememberFoldInfo()
-    val settingsSplit = when {
-        fold != null &&
-            fold.axis == com.aeriotv.android.ui.adaptive.FoldAxis.VERTICAL &&
-            fold.start > 0.dp ->
-            SettingsPaneSplit(
-                sidebarExtent = fold.start,
-                gap = fold.gap,
-                drawDivider = !fold.needsBlankGap,
-            )
-        else ->
-            SettingsPaneSplit(
-                sidebarExtent = viewport.settingsSidebarWidth,
-                drawDivider = fold?.isOccluding != true,
-            )
-    }
-
-    Box(modifier = Modifier.focusRequester(settingsContentFocus).focusGroup()) {
-        if (tvRail) {
-            SettingsTvRailHost(
-                focusPaneSignal = deepLinkPaneFocus,
-                selection = selection,
-                onSelect = { picked ->
-                    nav.popToRoot()
-                    selection = picked
-                },
-                pushed = route,
-                sections = visibleSettingsSections(
-                    isTv = true,
-                    updaterEnabled = updaterEnabled,
-                ),
-                activePlaylistName = playlistState.playlist?.name,
-                syncEnabled = syncEnabled,
-                // Plan B2: the TV takeover set. These keep the whole screen so
-                // their keyboard / IME plumbing is untouched.
-                takeover = ::isSettingsTakeover,
-                detail = { renderRoute(it) },
-            )
-        } else if (tabletTwoPane) {
-            // Rev 2: sidebar browsing mutates `selection` and never pushes, so
-            // Back can only unwind real pushes.
-            SettingsTwoPaneHost(
-                selection = selection,
-                onSelect = { picked ->
-                    // Leaving a pane abandons anything pushed above it; the new
-                    // pane starts at its own baseline (Apple rail behavior).
-                    nav.popToRoot()
-                    selection = picked
-                },
-                pushed = route,
-                sections = visibleSettingsSections(
-                    isTv = isTvDevice,
-                    updaterEnabled = updaterEnabled,
-                ),
-                activePlaylistName = playlistState.playlist?.name,
-                syncEnabled = syncEnabled,
-                // Log lines and license texts want the whole width, and the
-                // Add Playlist wizard is a modal flow of its own; everything
-                // else (playlist detail, Edit Playlist, Add More Categories,
-                // section sub-pages) renders in the pane with the sidebar up.
-                takeover = {
-                    it is SettingsRoute.LogViewer ||
-                        it is SettingsRoute.Licenses ||
-                        it is SettingsRoute.AddPlaylist
-                },
-                split = settingsSplit,
-                detail = { renderRoute(it) },
-            )
-        } else {
-            // Dispatch on the stack's top route. Ordering that used to be
-            // implicit in branch position (the log viewer had to sit ABOVE
-            // Developer to win) is now just push order.
-            renderRoute(route)
-        }
-    }
-}
-
-/**
- * Mirror of iOS MainTabView's dynamic tab-visibility rule (HomeView.swift
- * hasFavorites / hasRecordings / hasVOD). Always-on tabs: Live TV, Settings.
- * Conditional tabs appear ONLY when there is real content to show, NOT merely
- * because the source type could in theory serve it:
- *  - Favorites: the user has favorited at least one channel in the active playlist.
- *  - DVR: at least one recording exists (scheduled / recording / completed,
- *    server or local) for the active source.
- *  - On Demand: the active source has advertised any VOD (movies or series), or
- *    is still loading its VOD library (loading bridge prevents cold-start flicker).
- *
- * A bare live-TV M3U, or a Dispatcharr/Xtream source with no VOD and no
- * recordings, surfaces only Live TV + Settings - empty tabs never appear.
- */
-internal fun visibleTabs(
-    hasFavorites: Boolean = false,
-    hasVod: Boolean = false,
-    hasRecordings: Boolean = false,
-    /** Phone/tablet media center: Movies + TV Shows instead of On Demand. */
-    splitVod: Boolean = false,
-    hasMovies: Boolean = hasVod,
-    hasSeries: Boolean = hasVod,
-): List<AppTab> = buildList {
-    add(AppTab.LiveTV)
-    if (hasFavorites) add(AppTab.Favorites)
-    if (hasRecordings) add(AppTab.DVR)
-    if (splitVod) {
-        if (hasMovies) add(AppTab.Movies)
-        if (hasSeries) add(AppTab.TVShows)
-    } else if (hasVod) add(AppTab.OnDemand)
-    // Audio remains implemented internally for the external-audio mixer, but its
-    // standalone main-tab UI is intentionally hidden from customers.
-    // Do NOT remove AppTab.Audio or AudioSourceTabContent: PlayerScreen still
-    // uses the same AudioSourceManager for source selection/mixing.
-    add(AppTab.Settings)
-    // AppTab.Search is deliberately NOT a pill: on TV it renders as the
-    // floating circle LEFT of Live TV inside TvTopTabBar (Logan 2026-08-06:
-    // frequent searchers shouldn't traverse the whole bar), and phones keep
-    // their app-bar search entry points instead of a bottom-bar tab.
-}
-
-/** EntryPoint accessor so MainScaffold can drive pause/destroy on the held
- * MPV instance without routing through a ViewModel. */
-@dagger.hilt.EntryPoint
-@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
-interface MainScaffoldEntryPoint {
-    fun exoPlayerHolder(): AerioExoPlayerHolder
-    fun exoWindowState(): com.aeriotv.android.feature.player.ExoWindowState
-    fun castSender(): com.aeriotv.android.core.cast.AerioCastSender
-    fun companionRemote(): com.aeriotv.android.core.cast.companion.CompanionRemoteController
-    fun companionDiscovery(): com.aeriotv.android.core.cast.companion.CompanionDiscovery
-}
-
-/** Two-step Add Playlist flow embedded in the Settings tab. None = closed. */
-private sealed interface AddPlaylistStep {
-    data object None : AddPlaylistStep
-    data object ChooseType : AddPlaylistStep
-    data class Configure(val sourceType: com.aeriotv.android.core.data.SourceType) : AddPlaylistStep
-}
-
-/** Scaffold-level view of On Demand state: presence flags only, so page
- *  emissions from the catalog walk do not recompose the scaffold. */
-private data class VodPresence(
-    val unsupportedSource: Boolean,
-    val hasMovies: Boolean,
-    val hasSeries: Boolean,
-    val isLoading: Boolean,
-    val isLoadingSeries: Boolean,
-    val hasDeferredXtreamContent: Boolean,
-) {
-    companion object {
-        fun from(s: com.aeriotv.android.feature.ondemand.OnDemandViewModel.UiState) = VodPresence(
-            unsupportedSource = s.unsupportedSource,
-            // Stored catalog counts (GH #109: the lists are no longer in memory).
-            hasMovies = s.totalCount > 0,
-            hasSeries = s.seriesTotalCount > 0,
-            isLoading = s.isLoading,
-            isLoadingSeries = s.isLoadingSeries,
-            hasDeferredXtreamContent = s.hasDeferredXtreamContent,
-        )
-    }
-}
-
-/** True inside the tab the user is on; false inside a tab kept alive but
- *  hidden. Tab content gates focus pulls and BackHandlers on it. */
-val LocalTabIsActive = androidx.compose.runtime.compositionLocalOf { true }
-
-/** Measured at the REAL slot size and never placed: no draw, no focus
- *  geometry, no semantics, but the composition (and its state, scroll
- *  positions, loaded data) survives.
- *
- *  It used to measure at ZERO. That made showing a tab a full relayout, and a
- *  pre-warmed tab was laid out at 0 width, so its first placed frame was the
- *  0-width one: the hero carousel (which measures its own width) rendered its
- *  pages as slivers for a beat (Logan 2026-09-11). Measuring at the real size
- *  means the hidden tab is laid out exactly as it will be shown and its first
- *  placed frame is final; the parent still reports 0 x 0 and never places it,
- *  so it draws nothing, and canFocus/invisibleToUser below still keep it out
- *  of focus search and accessibility. */
-private fun Modifier.keepAliveHidden(): Modifier = this
-    .layout { measurable, constraints ->
-        // Same constraints the ACTIVE slot's fillMaxSize() resolves to.
-        val full = constraints.copy(
-            minWidth = constraints.maxWidth.takeIf { it != androidx.compose.ui.unit.Constraints.Infinity } ?: constraints.minWidth,
-            minHeight = constraints.maxHeight.takeIf { it != androidx.compose.ui.unit.Constraints.Infinity } ?: constraints.minHeight,
-        )
-        measurable.measure(full)
-        layout(0, 0) { /* deliberately not placed */ }
-    }
-    .focusProperties { canFocus = false }
-    .semantics { invisibleToUser() }
