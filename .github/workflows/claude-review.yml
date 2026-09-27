@@ -1,0 +1,62 @@
+name: Claude Code Agent
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - feat/lumen-mobile-redesign-from-59d033e
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+  id-token: write
+
+jobs:
+  claude-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 20
+
+      - name: Claude Code Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          additional_permissions: |
+            actions: read
+          prompt: |
+            Work directly on this AerioTV Android Pull Request.
+
+            You are an implementation agent, not a review-only agent.
+
+            1. Inspect the current PR, repository structure, and changed files.
+            2. Identify real problems, incomplete implementation, build issues,
+               UI regressions, Android TV issues, RTL/LTR problems, playback
+               stability issues, lifecycle/state problems, and risky dependencies.
+            3. Fix confirmed problems directly in the PR branch.
+            4. Implement missing pieces when they are clearly required by the PR.
+            5. Keep the existing AerioTV architecture and avoid unrelated rewrites.
+            6. Preserve existing functionality unless the PR explicitly changes it.
+            7. Run ./gradlew assembleDebug when practical.
+            8. Commit all useful changes to the current PR branch.
+            9. Do not merge the PR, force-push, rebase, or modify unrelated branches.
+            10. In your final response, summarize exactly what you changed,
+                what you tested, and any remaining issues.
+
+            Important AerioTV requirements:
+            - Kotlin and Jetpack Compose correctness
+            - Android TV compatibility and remote/focus navigation
+            - Arabic RTL and English LTR behavior
+            - Clean professional dark streaming UI
+            - Playback and player stability
+            - Lifecycle and state management
+            - Gradle/build stability
+            - Avoid unnecessary dependencies
+          claude_args: |
+            --max-turns 15
+            --allowedTools Edit,Read,Write,Bash(./gradlew assembleDebug)
