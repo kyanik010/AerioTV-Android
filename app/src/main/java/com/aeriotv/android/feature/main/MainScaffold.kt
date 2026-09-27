@@ -1741,32 +1741,19 @@ private fun EagleXHomeNavigation(
         )
         Spacer(Modifier.height(24.dp))
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 520.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                destinations.take(2).forEach { (tab, label) ->
-                    EagleXHomeCard(tab, label, { onSelect(tab) }, Modifier.weight(1f))
-                }
+            destinations.forEach { (tab, label) ->
+                EagleXHomeCard(
+                    tab = tab,
+                    label = label,
+                    onClick = { onSelect(tab) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                destinations.drop(2).take(2).forEach { (tab, label) ->
-                    EagleXHomeCard(tab, label, { onSelect(tab) }, Modifier.weight(1f))
-                }
-            }
-            val (settingsTab, settingsLabel) = destinations.last()
-            EagleXHomeCard(
-                settingsTab,
-                settingsLabel,
-                { onSelect(settingsTab) },
-                Modifier.fillMaxWidth(0.5f).align(Alignment.CenterHorizontally),
-            )
         }
     }
 }
@@ -1781,22 +1768,22 @@ private fun EagleXHomeCard(
     val shape = RoundedCornerShape(18.dp)
     Column(
         modifier = modifier
-            .height(96.dp)
+            .height(72.dp)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.82f))
             .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), shape)
             .clickable(onClick = onClick)
             .padding(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = tab.iconSelected,
             contentDescription = label,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(26.dp),
         )
-        Spacer(Modifier.height(7.dp))
+        Spacer(Modifier.width(12.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
