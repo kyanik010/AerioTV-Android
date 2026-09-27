@@ -997,6 +997,7 @@ fun MainScaffold(
                 }
                 MainTabContent(
                     selectedTab = selectedTab,
+                    onDemandViewModel = onDemandVm,
                     tabs = tabs,
                     onChannelClick = onChannelClick,
                     onMovieClick = onMovieClick,
@@ -1723,6 +1724,7 @@ private fun MinimizedTabPill(
 @Composable
 private fun MainTabContent(
     selectedTab: AppTab,
+    onDemandViewModel: OnDemandViewModel,
     /** Tabs currently present; only these are kept alive. */
     tabs: List<AppTab>,
     onChannelClick: (M3UChannel) -> Unit,
@@ -1769,14 +1771,13 @@ private fun MainTabContent(
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
             AppTab.Home -> {
-                val onDemandVm: OnDemandViewModel = hiltViewModel()
                 EagleXHomeScreen(
                     onSelectTab = onSelectTab,
                     onPlayMovie = onPlayMovie,
                     onPlaySeries = onSeriesClick,
                     username = viewModel.state.value.playlist?.username,
                     expiresAt = null,
-                    viewModel = onDemandVm,
+                    viewModel = onDemandViewModel,
                 )
             }
             AppTab.LiveTV -> {
