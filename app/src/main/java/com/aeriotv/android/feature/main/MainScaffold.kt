@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.FiberSmartRecord
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -1719,44 +1720,166 @@ private fun AerioMobileHomeScreen(
     onChannels: () -> Unit,
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
+    onSearch: () -> Unit,
 ) {
     val language = LocalAppLanguage.current
     val isEnglish = language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH
-    val items = listOf(
-        Triple(AppTab.Movies, if (isEnglish) "Movies" else "الأفلام", onMovies),
-        Triple(AppTab.TVShows, if (isEnglish) "Series" else "المسلسلات", onSeries),
-        Triple(AppTab.LiveTV, if (isEnglish) "Channels" else "القنوات", onChannels),
-        Triple(AppTab.Favorites, if (isEnglish) "Favorites" else "المفضلة", onFavorites),
-        Triple(AppTab.Settings, if (isEnglish) "Settings" else "الإعدادات", onSettings),
+
+    data class HomeItem(
+        val tab: AppTab,
+        val title: String,
+        val action: () -> Unit,
     )
-    Box(Modifier.fillMaxSize().background(Color(0xFF080A0F)).padding(horizontal = 18.dp, vertical = 22.dp)) {
+
+    val items = listOf(
+        HomeItem(AppTab.Movies, if (isEnglish) "Movies" else "الأفلام", onMovies),
+        HomeItem(AppTab.TVShows, if (isEnglish) "Series" else "المسلسلات", onSeries),
+        HomeItem(AppTab.LiveTV, if (isEnglish) "Channels" else "القنوات", onChannels),
+        HomeItem(AppTab.Favorites, if (isEnglish) "Favorites" else "المفضلة", onFavorites),
+        HomeItem(AppTab.Settings, if (isEnglish) "Settings" else "الإعدادات", onSettings),
+    )
+
+    val background = androidx.compose.ui.graphics.Brush.verticalGradient(
+        0f to Color(0xFF080A0F),
+        0.48f to Color(0xFF0B0F16),
+        1f to Color(0xFF06080C),
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(background)
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().widthIn(max = 520.dp).align(Alignment.Center),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 560.dp)
+                .align(Alignment.Center),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("AerioTV", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            Spacer(Modifier.height(6.dp))
-            items.forEach { (tab, label, action) ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isEnglish) "Eagle X" else "Eagle X",
+                        color = Color.White,
+                        fontSize = 25.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = if (isEnglish) "Home" else "الرئيسية",
+                        color = Color(0xFFA7AFBF),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Normal,
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.055f))
+                        .border(
+                            1.dp,
+                            Color.White.copy(alpha = 0.10f),
+                            CircleShape,
+                        )
+                        .clickable(onClick = onSearch),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = if (isEnglish) "Search" else "بحث",
+                        tint = Color.White.copy(alpha = 0.90f),
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(2.dp))
+
+            items.forEach { item ->
                 val interaction = remember { MutableInteractionSource() }
                 val focused by interaction.collectIsFocusedAsState()
+
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(72.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color(0xFF151A23).copy(alpha = if (focused) 0.92f else 0.72f))
-                        .border(1.dp, Color.White.copy(alpha = if (focused) 0.16f else 0.07f), RoundedCornerShape(24.dp))
-                        .clickable(interactionSource = interaction, indication = null, onClick = action)
-                        .focusable(interactionSource = interaction),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.07f)), contentAlignment = Alignment.Center) {
-                            Icon(tab.iconSelected, null, tint = Color.White.copy(alpha = 0.92f), modifier = Modifier.size(21.dp))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(78.dp)
+                        .graphicsLayer {
+                            val scale = if (focused) 1.018f else 1f
+                            scaleX = scale
+                            scaleY = scale
+                            shadowElevation = if (focused) 8.dp.toPx() else 0f
                         }
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(
+                            Color(0xFF151A23).copy(
+                                alpha = if (focused) 0.88f else 0.68f,
+                            ),
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(
+                                alpha = if (focused) 0.18f else 0.075f,
+                            ),
+                            shape = RoundedCornerShape(26.dp),
+                        )
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = null,
+                            onClick = item.action,
+                        )
+                        .focusable(interactionSource = interaction),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(15.dp))
+                                .background(Color.White.copy(alpha = if (focused) 0.095f else 0.055f))
+                                .border(
+                                    1.dp,
+                                    Color.White.copy(alpha = 0.06f),
+                                    RoundedCornerShape(15.dp),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = item.tab.iconSelected,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.93f),
+                                modifier = Modifier.size(21.dp),
+                            )
+                        }
+
                         Spacer(Modifier.width(16.dp))
-                        Text(label, color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                        Text("›", color = Color(0xFFA7AFBF), fontSize = 28.sp, fontWeight = FontWeight.Light)
+
+                        Text(
+                            text = item.title,
+                            color = Color.White,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f),
+                        )
+
+                        Text(
+                            text = if (isEnglish) "›" else "‹",
+                            color = Color(0xFFA7AFBF).copy(alpha = 0.78f),
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Light,
+                        )
                     }
                 }
             }
@@ -1819,6 +1942,7 @@ private fun MainTabContent(
                     onChannels = { onSelectTab(AppTab.LiveTV) },
                     onFavorites = { onSelectTab(AppTab.Favorites) },
                     onSettings = { onSelectTab(AppTab.Settings) },
+                    onSearch = onOpenSearch,
                 )
             }
             AppTab.LiveTV -> {
