@@ -854,8 +854,7 @@ fun MainScaffold(
             LocalTvChromeScroll provides chromeScroll,
             LocalTvFullScreenOverlay provides fullScreenOverlay,
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-            // TV chrome is an OVERLAY, not a sibling above the content
+            tvShellBox@Box(modifier = Modifier.fillMaxSize()) {            // TV chrome is an OVERLAY, not a sibling above the content
             // (2026-09-11). The bar used to live in a Column with the tab
             // content and collapsibleChrome animated its HEIGHT, so the
             // content's viewport grew over 250 ms while the bar hid and
@@ -1130,7 +1129,7 @@ fun MainScaffold(
                         fullScreenOverlay.value?.invoke()
             }
         }
-        return@Box
+        return@tvShellBox
     }
 
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
@@ -1296,7 +1295,6 @@ fun MainScaffold(
                     }
                     .navigationBarsPadding()
                     .padding(bottom = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // THE cast card (Logan 2026-09-12): ONE card above the tab bar
                 // for whichever transport this phone is driving (Google Cast or
