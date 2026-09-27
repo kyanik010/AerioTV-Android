@@ -526,7 +526,7 @@ fun MainScaffold(
     val settingsVm: SettingsViewModel = hiltViewModel()
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var initialTabApplied by rememberSaveable { mutableStateOf(false) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
@@ -1712,6 +1712,119 @@ private fun MinimizedTabPill(
  * a weight + fill on TV.
  */
 @Composable
+private fun EagleXHomeNavigation(
+    tabs: List<AppTab>,
+    onSelect: (AppTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val language = LocalAppLanguage.current
+    val arabic = language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC
+    val destinations = listOf(
+        AppTab.LiveTV to if (arabic) "القنوات" else "Live TV",
+        AppTab.Movies to if (arabic) "الأفلام" else "Movies",
+        AppTab.TVShows to if (arabic) "المسلسلات" else "TV Shows",
+        AppTab.Favorites to if (arabic) "المفضلة" else "Favorites",
+        AppTab.Settings to if (arabic) "الإعدادات" else "Settings",
+    )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = if (arabic) "الرئيسية" else "Home",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(24.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                destinations.take(2).forEach { (tab, label) ->
+                    EagleXHomeCard(
+                        tab = tab,
+                        label = label,
+                        enabled = tab in tabs,
+                        onClick = { onSelect(tab) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                destinations.drop(2).take(2).forEach { (tab, label) ->
+                    EagleXHomeCard(
+                        tab = tab,
+                        label = label,
+                        enabled = tab in tabs,
+                        onClick = { onSelect(tab) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            EagleXHomeCard(
+                tab = AppTab.Settings,
+                label = destinations.last().second,
+                enabled = AppTab.Settings in tabs,
+                onClick = { onSelect(AppTab.Settings) },
+                modifier = Modifier.fillMaxWidth(0.5f).align(Alignment.CenterHorizontally),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EagleXHomeCard(
+    tab: AppTab,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        modifier = modifier
+            .height(96.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 0.82f else 0.35f))
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 0.14f else 0.05f),
+                shape,
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = tab.iconSelected,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else 0.35f),
+            modifier = Modifier.size(28.dp),
+        )
+        Spacer(Modifier.height(7.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.4f),
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun MainTabContent(
     selectedTab: AppTab,
     /** Tabs currently present; only these are kept alive. */
@@ -1757,8 +1870,15 @@ private fun MainTabContent(
     // floating screen and is never kept.
     if (selectedTab != AppTab.Search && selectedTab !in visited) visited.add(selectedTab)
     val keepAliveTabs = tabs.filter { it in visited }
+    val renderTabs = if (selectedTab == AppTab.Home) listOf(AppTab.Home) else keepAliveTabs
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
+            AppTab.Home -> {
+                EagleXHomeNavigation(
+                    tabs = tabs,
+                    onSelect = onSelectTab,
+                )
+            }
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
@@ -1851,7 +1971,7 @@ private fun MainTabContent(
         // two different parents would dispose and rebuild it, which is the
         // reload this exists to avoid. BackHandlers inside are gated on
         // LocalTabIsActive, so composition order does not matter for Back.
-        keepAliveTabs.forEach { tab ->
+        renderTabs.forEach { tab ->
             val active = tab == selectedTab
             androidx.compose.runtime.key(tab) {
                 CompositionLocalProvider(LocalTabIsActive provides active) {
