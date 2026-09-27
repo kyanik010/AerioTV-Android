@@ -1,0 +1,5 @@
+const movieNames=["The Last Horizon","Midnight Run","Blue Signal","Afterlight","Northbound","The Divide","Black Harbor","Eclipse"];
+const seriesNames=["City Lines","Dark Matter","The District","Silent Code","The Bridge","Final Season","The Agency","Night Shift"];
+function render(id,names){document.getElementById(id).innerHTML=names.map((n,i)=>'<div class="card" tabindex="0"><div class="poster"><span>'+n+'</span></div></div>').join('');document.querySelectorAll('#'+id+' .card').forEach(c=>c.addEventListener('focus',()=>{document.querySelectorAll('.card').forEach(x=>x.classList.remove('focus'));c.classList.add('focus')}))}
+render('movies',movieNames);render('series',seriesNames);
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active')}));
