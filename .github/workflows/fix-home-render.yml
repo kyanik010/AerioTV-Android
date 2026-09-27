@@ -1,0 +1,67 @@
+name: Apply Home render fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-home-render:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Patch Home rendering
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
+          s = p.read_text(encoding='utf-8')
+          old = '''            MainTabContent(
+                selectedTab = selectedTab,'''
+          new = '''            if (selectedTab == AppTab.Home) {
+                EagleXHomeNavigation(
+                    onSelect = { selectedTab = it; initialTabApplied = true },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                MainTabContent(
+                    selectedTab = selectedTab,'''
+          if s.count(old) != 1:
+              raise SystemExit(f'Expected exactly one MainTabContent call, found {s.count(old)}')
+          s = s.replace(old, new, 1)
+          old_end = '''                visited = visitedTabs,
+                modifier = Modifier.fillMaxSize(),
+            )
+            // No "Syncing" pill on phone:'''
+          new_end = '''                    visited = visitedTabs,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            // No "Syncing" pill on phone:'''
+          if s.count(old_end) != 1:
+              raise SystemExit(f'Expected exactly one MainTabContent end, found {s.count(old_end)}')
+          s = s.replace(old_end, new_end, 1)
+          p.write_text(s, encoding='utf-8')
+
+      - name: Verify source shape
+        shell: bash
+        run: |
+          grep -n -A8 -B2 'if (selectedTab == AppTab.Home)' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+          grep -n -A4 'EagleXHomeNavigation(' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+
+      - name: Commit fix and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt .github/workflows/fix-home-render.yml
+          git rm .github/workflows/fix-home-render.yml
+          git commit -m 'fix: render Eagle X Home content'
+          git push origin HEAD:main
