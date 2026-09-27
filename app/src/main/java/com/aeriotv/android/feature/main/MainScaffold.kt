@@ -1743,16 +1743,15 @@ private fun AerioMobileHomeScreen(
     )
 
     val items = listOf(
+        HomeItem(AppTab.LiveTV, if (isEnglish) "Live TV" else "القنوات", onChannels),
         HomeItem(AppTab.Movies, if (isEnglish) "Movies" else "الأفلام", onMovies),
         HomeItem(AppTab.TVShows, if (isEnglish) "Series" else "المسلسلات", onSeries),
-        HomeItem(AppTab.LiveTV, if (isEnglish) "Channels" else "القنوات", onChannels),
         HomeItem(AppTab.Favorites, if (isEnglish) "Favorites" else "المفضلة", onFavorites),
-        HomeItem(AppTab.Settings, if (isEnglish) "Settings" else "الإعدادات", onSettings),
     )
 
     val background = androidx.compose.ui.graphics.Brush.verticalGradient(
-        0f to Color(0xFF080A0F),
-        0.48f to Color(0xFF0B0F16),
+        0f to Color(0xFF07090D),
+        0.55f to Color(0xFF0B1018),
         1f to Color(0xFF06080C),
     )
 
@@ -1760,19 +1759,20 @@ private fun AerioMobileHomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(background)
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = 560.dp)
                 .align(Alignment.Center),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            // Compact header: no oversized black Eagle X block.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                    .height(46.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
@@ -1783,28 +1783,29 @@ private fun AerioMobileHomeScreen(
                         painter = painterResource(id = R.drawable.eagle_x_logo),
                         contentDescription = "Eagle X",
                         modifier = Modifier
-                            .height(42.dp)
-                            .widthIn(max = 150.dp),
-                        contentScale = ContentScale.Fit,
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop,
                     )
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(9.dp))
                     Text(
-                        text = if (isEnglish) "Home" else "الرئيسية",
-                        color = Color(0xFFA7AFBF),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Normal,
+                        text = "Eagle X",
+                        color = Color.White.copy(alpha = 0.92f),
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
 
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.055f))
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(Color.White.copy(alpha = 0.065f))
                         .border(
                             1.dp,
                             Color.White.copy(alpha = 0.10f),
-                            CircleShape,
+                            RoundedCornerShape(13.dp),
                         )
                         .clickable(onClick = onSearch),
                     contentAlignment = Alignment.Center,
@@ -1812,94 +1813,240 @@ private fun AerioMobileHomeScreen(
                     Icon(
                         imageVector = Icons.Filled.Search,
                         contentDescription = if (isEnglish) "Search" else "بحث",
-                        tint = Color.White.copy(alpha = 0.90f),
-                        modifier = Modifier.size(21.dp),
+                        tint = Color.White.copy(alpha = 0.88f),
+                        modifier = Modifier.size(19.dp),
                     )
                 }
             }
 
-            Spacer(Modifier.height(2.dp))
-
-            items.forEach { item ->
-                val interaction = remember { MutableInteractionSource() }
-                val focused by interaction.collectIsFocusedAsState()
-
+            // One cinematic glass hero instead of five oversized vertical cards.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(188.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        androidx.compose.ui.graphics.Brush.linearGradient(
+                            listOf(
+                                Color(0xFF1A2230).copy(alpha = 0.92f),
+                                Color(0xFF10151F).copy(alpha = 0.74f),
+                            )
+                        )
+                    )
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.09f),
+                        RoundedCornerShape(24.dp),
+                    ),
+            ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(78.dp)
-                        .graphicsLayer {
-                            val scale = if (focused) 1.018f else 1f
-                            scaleX = scale
-                            scaleY = scale
-                            shadowElevation = if (focused) 8.dp.toPx() else 0f
-                        }
-                        .clip(RoundedCornerShape(26.dp))
+                        .fillMaxWidth(0.58f)
+                        .fillMaxHeight()
+                        .align(Alignment.CenterEnd)
                         .background(
-                            Color(0xFF151A23).copy(
-                                alpha = if (focused) 0.88f else 0.68f,
-                            ),
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = Color.White.copy(
-                                alpha = if (focused) 0.18f else 0.075f,
-                            ),
-                            shape = RoundedCornerShape(26.dp),
-                        )
-                        .clickable(
-                            interactionSource = interaction,
-                            indication = null,
-                            onClick = item.action,
-                        )
-                        .focusable(interactionSource = interaction),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(15.dp))
-                                .background(Color.White.copy(alpha = if (focused) 0.095f else 0.055f))
-                                .border(
-                                    1.dp,
-                                    Color.White.copy(alpha = 0.06f),
-                                    RoundedCornerShape(15.dp),
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = item.tab.iconSelected,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.93f),
-                                modifier = Modifier.size(21.dp),
+                            androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    Color(0xFF263A5A).copy(alpha = 0.26f),
+                                )
                             )
-                        }
+                        ),
+                )
 
-                        Spacer(Modifier.width(16.dp))
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(horizontal = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    Text(
+                        text = if (isEnglish) "YOUR ENTERTAINMENT" else "ترفيهك في مكان واحد",
+                        color = Color(0xFFB8C7E5),
+                        fontSize = 10.sp,
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
 
+                    Text(
+                        text = if (isEnglish) "Ready to watch?" else "جاهز للمشاهدة؟",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        lineHeight = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+
+                    Text(
+                        text = if (isEnglish)
+                            "Channels, movies and series in one clean experience."
+                        else
+                            "القنوات والأفلام والمسلسلات في تجربة واحدة هادئة.",
+                        color = Color(0xFFA7AFBF),
+                        fontSize = 11.sp,
+                        lineHeight = 17.sp,
+                        maxLines = 2,
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(Color.White.copy(alpha = 0.95f))
+                            .clickable(onClick = onChannels)
+                            .padding(horizontal = 15.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Text(
-                            text = item.title,
-                            color = Color.White,
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f),
-                        )
-
-                        Text(
-                            text = if (isEnglish) "›" else "‹",
-                            color = Color(0xFFA7AFBF).copy(alpha = 0.78f),
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Light,
+                            text = if (isEnglish) "Watch now" else "ابدأ المشاهدة",
+                            color = Color(0xFF080A0F),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }
             }
+
+            Text(
+                text = if (isEnglish) "Explore" else "استكشف",
+                color = Color.White.copy(alpha = 0.94f),
+                fontSize = 16.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 2.dp),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items.take(2).forEach { item ->
+                    HomeGlassTile(
+                        title = item.title,
+                        icon = item.tab.iconSelected,
+                        onClick = item.action,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items.drop(2).forEach { item ->
+                    HomeGlassTile(
+                        title = item.title,
+                        icon = item.tab.iconSelected,
+                        onClick = item.action,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.035f))
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.055f),
+                        RoundedCornerShape(14.dp),
+                    )
+                    .clickable(onClick = onSettings),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    Icon(
+                        imageVector = AppTab.Settings.iconSelected,
+                        contentDescription = null,
+                        tint = Color(0xFFA7AFBF),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = if (isEnglish) "Settings" else "الإعدادات",
+                        color = Color(0xFFA7AFBF),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeGlassTile(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+
+    Box(
+        modifier = modifier
+            .height(92.dp)
+            .graphicsLayer {
+                val scale = if (focused) 1.018f else 1f
+                scaleX = scale
+                scaleY = scale
+                shadowElevation = if (focused) 8.dp.toPx() else 0f
+            }
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Color(0xFF151A23).copy(
+                    alpha = if (focused) 0.88f else 0.62f,
+                ),
+            )
+            .border(
+                1.dp,
+                Color.White.copy(alpha = if (focused) 0.17f else 0.075f),
+                RoundedCornerShape(20.dp),
+            )
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
+            )
+            .focusable(interactionSource = interaction),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = if (focused) 0.10f else 0.055f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.92f),
+                    modifier = Modifier.size(19.dp),
+                )
+            }
+
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
         }
     }
 }
