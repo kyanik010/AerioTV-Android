@@ -21,12 +21,13 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - name: Apply exact compile fixes
+      - name: Apply exact Home and compile fixes
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
           s = p.read_text()
+
           old_box = '            Box(modifier = Modifier.fillMaxSize()) {\n'
           old_return = '        return@Box\n'
           old_cast_align = '                    .navigationBarsPadding()\n                    .padding(bottom = 10.dp),\n                horizontalAlignment = Alignment.CenterHorizontally,\n'
@@ -36,9 +37,27 @@ jobs:
               raise SystemExit(f'Expected exactly one return@Box, found {s.count(old_return)}')
           if s.count(old_cast_align) != 1:
               raise SystemExit(f'Expected exactly one cast Column alignment block, found {s.count(old_cast_align)}')
+
           s = s.replace(old_box, '            tvShellBox@Box(modifier = Modifier.fillMaxSize()) {', 1)
           s = s.replace(old_return, '        return@tvShellBox\n', 1)
           s = s.replace(old_cast_align, '                    .navigationBarsPadding()\n                    .padding(bottom = 10.dp),\n', 1)
+
+          marker = '''    Box(modifier = modifier) {\n        val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {'''
+          home = '''    Box(modifier = modifier) {\n        if (selectedTab == AppTab.Home) {\n            EagleXHomeNavigation(\n                onSelect = onSelectTab,\n                modifier = Modifier.fillMaxSize(),\n            )\n        } else {\n        val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {'''
+          if s.count(marker) == 1:
+              s = s.replace(marker, home, 1)
+          elif 'if (selectedTab == AppTab.Home) {' not in s:
+              raise SystemExit('MainTabContent Home insertion marker not found')
+
+          tail = '''        keepAliveTabs.forEach { tab ->\n            val active = tab == selectedTab\n            androidx.compose.runtime.key(tab) {\n                CompositionLocalProvider(LocalTabIsActive provides active) {\n                    Box(if (active) Modifier.fillMaxSize() else Modifier.keepAliveHidden()) { render(tab) }\n                }\n            }\n        }\n    }\n}'''
+          if s.count(tail) == 1 and 'if (selectedTab == AppTab.Home)' in s and '\n        }\n    }\n}\n\n/**\n * 10-foot top navigation' not in s:
+              s = s.replace(tail, tail.replace('\n    }\n}', '\n        }\n    }\n}'), 1)
+          elif 'if (selectedTab == AppTab.Home)' in s:
+              # Already inserted; do not mutate the body again.
+              pass
+          else:
+              raise SystemExit('MainTabContent tail marker not found')
+
           p.write_text(s)
           PY
           git diff --check
@@ -48,7 +67,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
-          git commit -m 'fix: correct Home shell label and cast column alignment'
+          git diff --cached --quiet || git commit -m 'fix: render Eagle X Home and correct compile labels'
           git push origin HEAD:main
       - name: Build debug APK from fixed source
         run: |
