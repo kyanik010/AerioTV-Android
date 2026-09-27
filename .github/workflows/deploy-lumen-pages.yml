@@ -1,0 +1,41 @@
+name: Deploy Lumen Pages Preview
+
+on:
+  push:
+    branches:
+      - feat/lumen-mobile-redesign-from-59d033e
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-lumen-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Lumen branch
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload docs
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
