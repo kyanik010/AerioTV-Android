@@ -395,7 +395,7 @@ fun MainScaffold(
         val live = visibleTabs(
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
-            hasFavorites = false,
+            hasFavorites = true,
             hasVod = hasVodContent,
             hasRecordings = hasRecordings,
             splitVod = splitVod,
@@ -403,7 +403,6 @@ fun MainScaffold(
             hasSeries = hasSeriesContent,
         )
         stickyTabs += live
-        stickyTabs -= AppTab.Favorites
         if (!vodSourceOk) { stickyTabs -= AppTab.OnDemand; stickyTabs -= AppTab.Movies; stickyTabs -= AppTab.TVShows }
         // A DENIED capability verdict is a real state change, not the transient
         // "empty list / still loading" the sticky rule exists to absorb, so it
@@ -1576,40 +1575,13 @@ private fun TabletTopTabBar(
     scale: Float,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                CircleShape,
-            )
-            .padding(all = 4.dp * scale),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        tabs.forEach { tab ->
-            val isSel = tab == selected
-            Text(
-                text = tab.localizedLabel(LocalAppLanguage.current),
-                fontSize = 17.sp * scale,
-                fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Medium,
-                // iPad: the selected tab is a LIGHTER neutral fill with accent
-                // text, not an accent-tinted fill.
-                color = if (isSel) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(
-                        if (isSel) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                        else Color.Transparent,
-                    )
-                    .clickable { onSelect(tab) }
-                    .padding(horizontal = 18.dp * scale, vertical = 7.dp * scale),
-            )
-        }
-    }
+    HomeCategoryCardBar(
+        tabs = tabs,
+        selected = selected,
+        onSelect = onSelect,
+        scale = scale,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -1619,68 +1591,99 @@ private fun FloatingTabBar(
     onSelect: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2026-07-12 (user report: mistapping channels behind the pill when
-    // changing tabs): sized up to the iPhone bar's proportions - the pill
-    // now spans the width minus side margins with evenly distributed,
-    // taller tab targets instead of a compact wrap-content cluster.
-    // Phone-sized pill on every window: on a foldable's inner display or a
-    // landscape phone it centres at 600 dp instead of spanning the width
-    // (Logan 2026-09-08: "WAY too big").
-    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+    HomeCategoryCardBar(
+        tabs = tabs,
+        selected = selected,
+        onSelect = onSelect,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun HomeCategoryCardBar(
+    tabs: List<AppTab>,
+    selected: AppTab,
+    onSelect: (AppTab) -> Unit,
+    scale: Float = 1f,
+    modifier: Modifier = Modifier,
+) {
+    val homeTabs = listOf(
+        AppTab.LiveTV,
+        AppTab.Movies,
+        AppTab.TVShows,
+        AppTab.Favorites,
+        AppTab.Settings,
+    )
+
     Row(
         modifier = modifier
-            .widthIn(max = 600.dp)
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .clip(RoundedCornerShape(36.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                RoundedCornerShape(36.dp),
-            )
-            // iPhone bar height (~53 pt): the Android pill measured ~69 dp
-            // (Logan 2026-09-09). Outer 6 + item 5 + icon 22 + label 12 + 5 + 6.
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .widthIn(max = 760.dp)
+            .padding(horizontal = 16.dp * scale),
+        horizontalArrangement = Arrangement.spacedBy(10.dp * scale),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        tabs.forEach { tab ->
-            val isSel = tab == selected
-            androidx.compose.foundation.layout.Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+        homeTabs.forEach { tab ->
+            val available = tab in tabs
+            val isSelected = tab == selected
+            val shape = RoundedCornerShape(18.dp * scale)
+            val background = when {
+                isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                available -> MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.38f)
+            }
+            val foreground = when {
+                isSelected -> MaterialTheme.colorScheme.primary
+                available -> MaterialTheme.colorScheme.onSurface
+                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+            }
+
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-                        else Color.Transparent,
+                    .clip(shape)
+                    .background(background)
+                    .border(
+                        1.dp * scale,
+                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.34f)
+                        else MaterialTheme.colorScheme.primary.copy(alpha = if (available) 0.10f else 0.05f),
+                        shape,
                     )
-                    .clickable { onSelect(tab) }
-                    .padding(vertical = 5.dp),
+                    .clickable(enabled = available) { onSelect(tab) }
+                    .padding(horizontal = 8.dp * scale, vertical = 11.dp * scale),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp * scale),
             ) {
                 Icon(
-                    imageVector = if (isSel) tab.iconSelected else tab.iconUnselected,
-                    contentDescription = tab.localizedLabel(LocalAppLanguage.current),
-                    tint = if (isSel) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(22.dp),
+                    imageVector = if (isSelected) tab.iconSelected else tab.iconUnselected,
+                    contentDescription = homeCategoryLabel(tab),
+                    tint = foreground,
+                    modifier = Modifier.size(24.dp * scale),
                 )
                 Text(
-                    text = tab.localizedLabel(LocalAppLanguage.current),
-                    fontSize = 10.sp,
-                    lineHeight = 12.sp,
-                    // One line at every Text Size: the bar grows taller with
-                    // the text, a long label ellipsizes instead of wrapping.
+                    text = homeCategoryLabel(tab),
+                    fontSize = 12.sp * scale,
+                    lineHeight = 14.sp * scale,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = foreground,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isSel) MaterialTheme.colorScheme.textAccent
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     }
+}
+
+@Composable
+private fun homeCategoryLabel(tab: AppTab): String {
+    val language = LocalAppLanguage.current
+    return when (tab) {
+        AppTab.LiveTV -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "القنوات" else "Channels"
+        AppTab.Movies -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الأفلام" else "Movies"
+        AppTab.TVShows -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المسلسلات" else "TV Shows"
+        AppTab.Favorites -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المفضلة" else "Favorites"
+        AppTab.Settings -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الإعدادات" else "Settings"
+        else -> tab.localizedLabel(language)
     }
 }
 
