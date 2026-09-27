@@ -1785,14 +1785,7 @@ private fun EagleXHomeNavCard(
 ) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(if (isTv) 20.dp else 18.dp)
-    val icon = when (tab) {
-        AppTab.LiveTV -> Icons.Filled.LiveTv
-        AppTab.Movies -> Icons.Filled.Movie
-        AppTab.TVShows -> Icons.Filled.Tv
-        AppTab.Favorites -> Icons.Filled.Favorite
-        AppTab.Settings -> Icons.Filled.Settings
-        else -> Icons.Filled.Tv
-    }
+    val icon = tab.iconSelected
     Column(
         modifier = modifier
             .height(if (isTv) 118.dp else 92.dp)
