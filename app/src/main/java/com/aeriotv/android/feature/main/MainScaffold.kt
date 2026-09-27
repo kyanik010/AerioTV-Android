@@ -42,6 +42,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FiberSmartRecord
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Tv
@@ -526,7 +530,7 @@ fun MainScaffold(
     val settingsVm: SettingsViewModel = hiltViewModel()
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var initialTabApplied by rememberSaveable { mutableStateOf(false) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
@@ -568,7 +572,7 @@ fun MainScaffold(
     LaunchedEffect(tabs) {
         // Search is never IN `tabs` (it's the floating bar button, not a
         // pill) but is a perfectly valid selection - don't bounce it.
-        if (selectedTab !in tabs && selectedTab != AppTab.Search) {
+        if (selectedTab !in tabs && selectedTab != AppTab.Search && selectedTab != AppTab.Home) {
             selectedTab = AppTab.LiveTV
         }
     }
@@ -633,7 +637,7 @@ fun MainScaffold(
     // priority there; this only fires on a tab root.
     val homeTab = AppTab.entries.firstOrNull { it.name == defaultTabPref }
         ?.let { if (it == AppTab.OnDemand && splitVod) AppTab.Movies else it }
-        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.LiveTV
+        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.Home
     // TV: the leaving tab's content nodes vanish, and Compose's fallback
     // hands focus to the LEFTMOST pill (Live TV) while the home tab is
     // selected (Logan 2026-09-02 screenshot). Ask for the home pill instead;
@@ -1170,6 +1174,7 @@ fun MainScaffold(
     val viewport = rememberViewport()
     val topTabBar = viewport.prefersTopTabBar
     val tabBarScale = viewport.topTabBarScale
+    val showNavigationChrome = selectedTab != AppTab.Home
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -1193,10 +1198,10 @@ fun MainScaffold(
       val navBarInset = WindowInsets.navigationBars.asPaddingValues()
           .calculateBottomPadding()
       androidx.compose.runtime.CompositionLocalProvider(
-          LocalTabBarBottomInset provides if (topTabBar) 16.dp else 96.dp + navBarInset,
+          LocalTabBarBottomInset provides if (!showNavigationChrome) 0.dp else if (topTabBar) 16.dp else 96.dp + navBarInset,
       ) {
       androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-        if (topTabBar) {
+        if (topTabBar && showNavigationChrome) {
             // Keeps the phone floating mini's top corners below this bar.
             androidx.compose.runtime.DisposableEffect(Unit) {
                 onDispose {
@@ -1400,7 +1405,7 @@ fun MainScaffold(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                if (!topTabBar) {
+                if (!topTabBar && showNavigationChrome) {
                     // iOS 26 parity (Logan 2026-09-09): scrolling down does not
                     // hide the bar, it MINIMIZES it to a small pill in the
                     // bottom-left corner showing the active tab's icon. Tapping
@@ -1711,6 +1716,117 @@ private fun MinimizedTabPill(
  * [modifier] carries the per-shell insets: Scaffold content padding on phone,
  * a weight + fill on TV.
  */
+@Composable
+private fun EagleXHomeNavigation(
+    onSelect: (AppTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC
+    val isTv = rememberLiveTvFormFactor().isTv
+    val destinations = listOf(
+        AppTab.LiveTV to if (isArabic) "القنوات" else "Channels",
+        AppTab.Movies to if (isArabic) "أفلام" else "Movies",
+        AppTab.TVShows to if (isArabic) "مسلسلات" else "TV Shows",
+        AppTab.Favorites to if (isArabic) "مفضلة" else "Favorites",
+        AppTab.Settings to if (isArabic) "إعدادات" else "Settings",
+    )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = if (isTv) 56.dp else 20.dp, vertical = if (isTv) 28.dp else 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = if (isArabic) "الرئيسية" else "Home",
+            style = if (isTv) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(if (isTv) 28.dp else 20.dp))
+        if (isTv) {
+            Row(
+                modifier = Modifier.fillMaxWidth().focusGroup(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                destinations.forEach { (tab, label) ->
+                    EagleXHomeNavCard(tab, label, true, { onSelect(tab) }, Modifier.weight(1f))
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    destinations.take(2).forEach { (tab, label) ->
+                        EagleXHomeNavCard(tab, label, false, { onSelect(tab) }, Modifier.weight(1f))
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    destinations.drop(2).take(2).forEach { (tab, label) ->
+                        EagleXHomeNavCard(tab, label, false, { onSelect(tab) }, Modifier.weight(1f))
+                    }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    val (tab, label) = destinations.last()
+                    EagleXHomeNavCard(tab, label, false, { onSelect(tab) }, Modifier.fillMaxWidth(0.5f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EagleXHomeNavCard(
+    tab: AppTab,
+    label: String,
+    isTv: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(if (isTv) 20.dp else 18.dp)
+    val icon = when (tab) {
+        AppTab.LiveTV -> Icons.Filled.LiveTv
+        AppTab.Movies -> Icons.Filled.Movie
+        AppTab.TVShows -> Icons.Filled.Tv
+        AppTab.Favorites -> Icons.Filled.Favorite
+        AppTab.Settings -> Icons.Filled.Settings
+        else -> Icons.Filled.Tv
+    }
+    Column(
+        modifier = modifier
+            .height(if (isTv) 118.dp else 92.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = if (focused) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                shape = shape,
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .then(if (isTv) Modifier.focusable() else Modifier)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(if (isTv) 32.dp else 28.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = label,
+            style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
 @Composable
 private fun MainTabContent(
     selectedTab: AppTab,
@@ -2676,12 +2792,11 @@ internal fun visibleTabs(
     hasSeries: Boolean = hasVod,
 ): List<AppTab> = buildList {
     add(AppTab.LiveTV)
-    if (hasFavorites) add(AppTab.Favorites)
+    add(AppTab.Favorites)
+    add(AppTab.Movies)
+    add(AppTab.TVShows)
     if (hasRecordings) add(AppTab.DVR)
-    if (splitVod) {
-        if (hasMovies) add(AppTab.Movies)
-        if (hasSeries) add(AppTab.TVShows)
-    } else if (hasVod) add(AppTab.OnDemand)
+    if (!splitVod && hasVod) add(AppTab.OnDemand)
     // Audio remains implemented internally for the external-audio mixer, but its
     // standalone main-tab UI is intentionally hidden from customers.
     // Do NOT remove AppTab.Audio or AudioSourceTabContent: PlayerScreen still
