@@ -42,13 +42,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FiberSmartRecord
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Cast
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -395,7 +391,7 @@ fun MainScaffold(
         val live = visibleTabs(
             // Phone/tablet: Favorites is a pinned Live TV group, not a tab (Apple parity).
             // Favorites is the pinned Live TV pill on every form factor (tvOS dropped the tab 2026-09-05).
-            hasFavorites = true,
+            hasFavorites = false,
             hasVod = hasVodContent,
             hasRecordings = hasRecordings,
             splitVod = splitVod,
@@ -403,6 +399,7 @@ fun MainScaffold(
             hasSeries = hasSeriesContent,
         )
         stickyTabs += live
+        stickyTabs -= AppTab.Favorites
         if (!vodSourceOk) { stickyTabs -= AppTab.OnDemand; stickyTabs -= AppTab.Movies; stickyTabs -= AppTab.TVShows }
         // A DENIED capability verdict is a real state change, not the transient
         // "empty list / still loading" the sticky rule exists to absorb, so it
@@ -571,7 +568,7 @@ fun MainScaffold(
     LaunchedEffect(tabs) {
         // Search is never IN `tabs` (it's the floating bar button, not a
         // pill) but is a perfectly valid selection - don't bounce it.
-        if (selectedTab !in tabs && selectedTab != AppTab.Search && selectedTab != AppTab.Home) {
+        if (selectedTab !in tabs && selectedTab != AppTab.Search) {
             selectedTab = AppTab.LiveTV
         }
     }
@@ -636,7 +633,7 @@ fun MainScaffold(
     // priority there; this only fires on a tab root.
     val homeTab = AppTab.entries.firstOrNull { it.name == defaultTabPref }
         ?.let { if (it == AppTab.OnDemand && splitVod) AppTab.Movies else it }
-        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.Home
+        ?.takeIf { it in tabs && it != AppTab.Search } ?: AppTab.LiveTV
     // TV: the leaving tab's content nodes vanish, and Compose's fallback
     // hands focus to the LEFTMOST pill (Live TV) while the home tab is
     // selected (Logan 2026-09-02 screenshot). Ask for the home pill instead;
@@ -853,7 +850,8 @@ fun MainScaffold(
             LocalTvChromeScroll provides chromeScroll,
             LocalTvFullScreenOverlay provides fullScreenOverlay,
         ) {
-            tvShellBox@Box(modifier = Modifier.fillMaxSize()) {            // TV chrome is an OVERLAY, not a sibling above the content
+            Box(modifier = Modifier.fillMaxSize()) {
+            // TV chrome is an OVERLAY, not a sibling above the content
             // (2026-09-11). The bar used to live in a Column with the tab
             // content and collapsibleChrome animated its HEIGHT, so the
             // content's viewport grew over 250 ms while the bar hid and
@@ -997,14 +995,8 @@ fun MainScaffold(
                         onDrawnBottomChanged = { barDrawnBottomPx = it },
                     )
                 }
-                if (selectedTab == AppTab.Home) {
-                    EagleXHomeNavigation(
-                        onSelect = { selectedTab = it; initialTabApplied = true },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    MainTabContent(
-                        selectedTab = selectedTab,
+                MainTabContent(
+                    selectedTab = selectedTab,
                     tabs = tabs,
                     onChannelClick = onChannelClick,
                     onMovieClick = onMovieClick,
@@ -1128,9 +1120,8 @@ fun MainScaffold(
                         fullScreenOverlay.value?.invoke()
             }
         }
+        return
     }
-
-    if (!isTv) {
 
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
     // scroll up. A NestedScrollConnection on the content host sees every
@@ -1179,7 +1170,6 @@ fun MainScaffold(
     val viewport = rememberViewport()
     val topTabBar = viewport.prefersTopTabBar
     val tabBarScale = viewport.topTabBarScale
-    val showNavigationChrome = selectedTab != AppTab.Home
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -1203,10 +1193,10 @@ fun MainScaffold(
       val navBarInset = WindowInsets.navigationBars.asPaddingValues()
           .calculateBottomPadding()
       androidx.compose.runtime.CompositionLocalProvider(
-          LocalTabBarBottomInset provides if (!showNavigationChrome) 0.dp else if (topTabBar) 16.dp else 96.dp + navBarInset,
+          LocalTabBarBottomInset provides if (topTabBar) 16.dp else 96.dp + navBarInset,
       ) {
       androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-        if (topTabBar && showNavigationChrome) {
+        if (topTabBar) {
             // Keeps the phone floating mini's top corners below this bar.
             androidx.compose.runtime.DisposableEffect(Unit) {
                 onDispose {
@@ -1270,7 +1260,6 @@ fun MainScaffold(
                 visited = visitedTabs,
                 modifier = Modifier.fillMaxSize(),
             )
-            }
             // No "Syncing" pill on phone: it sat on top of the Live TV
             // header's sidebar button, and the tab already shows a spinner.
             // Bottom overlay: floating mini-player card above the floating tab
@@ -1287,7 +1276,7 @@ fun MainScaffold(
             }
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .onGloballyPositioned {
                         com.aeriotv.android.feature.player.PhoneMiniChrome
@@ -1295,6 +1284,7 @@ fun MainScaffold(
                     }
                     .navigationBarsPadding()
                     .padding(bottom = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // THE cast card (Logan 2026-09-12): ONE card above the tab bar
                 // for whichever transport this phone is driving (Google Cast or
@@ -1410,7 +1400,7 @@ fun MainScaffold(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                if (!topTabBar && showNavigationChrome) {
+                if (!topTabBar) {
                     // iOS 26 parity (Logan 2026-09-09): scrolling down does not
                     // hide the bar, it MINIMIZES it to a small pill in the
                     // bottom-left corner showing the active tab's icon. Tapping
@@ -1512,7 +1502,6 @@ fun MainScaffold(
             showCompanionPicker = false
         }
     }
-    }
 }
 
 /**
@@ -1575,13 +1564,40 @@ private fun TabletTopTabBar(
     scale: Float,
     modifier: Modifier = Modifier,
 ) {
-    HomeCategoryCardBar(
-        tabs = tabs,
-        selected = selected,
-        onSelect = onSelect,
-        scale = scale,
-        modifier = modifier,
-    )
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                CircleShape,
+            )
+            .padding(all = 4.dp * scale),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        tabs.forEach { tab ->
+            val isSel = tab == selected
+            Text(
+                text = tab.localizedLabel(LocalAppLanguage.current),
+                fontSize = 17.sp * scale,
+                fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Medium,
+                // iPad: the selected tab is a LIGHTER neutral fill with accent
+                // text, not an accent-tinted fill.
+                color = if (isSel) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(
+                        if (isSel) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                        else Color.Transparent,
+                    )
+                    .clickable { onSelect(tab) }
+                    .padding(horizontal = 18.dp * scale, vertical = 7.dp * scale),
+            )
+        }
+    }
 }
 
 @Composable
@@ -1591,99 +1607,68 @@ private fun FloatingTabBar(
     onSelect: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    HomeCategoryCardBar(
-        tabs = tabs,
-        selected = selected,
-        onSelect = onSelect,
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun HomeCategoryCardBar(
-    tabs: List<AppTab>,
-    selected: AppTab,
-    onSelect: (AppTab) -> Unit,
-    scale: Float = 1f,
-    modifier: Modifier = Modifier,
-) {
-    val homeTabs = listOf(
-        AppTab.LiveTV,
-        AppTab.Movies,
-        AppTab.TVShows,
-        AppTab.Favorites,
-        AppTab.Settings,
-    )
-
+    // 2026-07-12 (user report: mistapping channels behind the pill when
+    // changing tabs): sized up to the iPhone bar's proportions - the pill
+    // now spans the width minus side margins with evenly distributed,
+    // taller tab targets instead of a compact wrap-content cluster.
+    // Phone-sized pill on every window: on a foldable's inner display or a
+    // landscape phone it centres at 600 dp instead of spanning the width
+    // (Logan 2026-09-08: "WAY too big").
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Row(
         modifier = modifier
+            .widthIn(max = 600.dp)
             .fillMaxWidth()
-            .widthIn(max = 760.dp)
-            .padding(horizontal = 16.dp * scale),
-        horizontalArrangement = Arrangement.spacedBy(10.dp * scale),
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(36.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                RoundedCornerShape(36.dp),
+            )
+            // iPhone bar height (~53 pt): the Android pill measured ~69 dp
+            // (Logan 2026-09-09). Outer 6 + item 5 + icon 22 + label 12 + 5 + 6.
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        homeTabs.forEach { tab ->
-            val available = tab in tabs
-            val isSelected = tab == selected
-            val shape = RoundedCornerShape(18.dp * scale)
-            val background = when {
-                isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                available -> MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-                else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.38f)
-            }
-            val foreground = when {
-                isSelected -> MaterialTheme.colorScheme.primary
-                available -> MaterialTheme.colorScheme.onSurface
-                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-            }
-
-            Column(
+        tabs.forEach { tab ->
+            val isSel = tab == selected
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .weight(1f)
-                    .clip(shape)
-                    .background(background)
-                    .border(
-                        1.dp * scale,
-                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.34f)
-                        else MaterialTheme.colorScheme.primary.copy(alpha = if (available) 0.10f else 0.05f),
-                        shape,
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                        else Color.Transparent,
                     )
-                    .clickable(enabled = available) { onSelect(tab) }
-                    .padding(horizontal = 8.dp * scale, vertical = 11.dp * scale),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp * scale),
+                    .clickable { onSelect(tab) }
+                    .padding(vertical = 5.dp),
             ) {
                 Icon(
-                    imageVector = if (isSelected) tab.iconSelected else tab.iconUnselected,
-                    contentDescription = homeCategoryLabel(tab),
-                    tint = foreground,
-                    modifier = Modifier.size(24.dp * scale),
+                    imageVector = if (isSel) tab.iconSelected else tab.iconUnselected,
+                    contentDescription = tab.localizedLabel(LocalAppLanguage.current),
+                    tint = if (isSel) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
                 )
                 Text(
-                    text = homeCategoryLabel(tab),
-                    fontSize = 12.sp * scale,
-                    lineHeight = 14.sp * scale,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = foreground,
+                    text = tab.localizedLabel(LocalAppLanguage.current),
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                    // One line at every Text Size: the bar grows taller with
+                    // the text, a long label ellipsizes instead of wrapping.
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isSel) MaterialTheme.colorScheme.textAccent
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     }
-}
-
-@Composable
-private fun homeCategoryLabel(tab: AppTab): String {
-    val language = LocalAppLanguage.current
-    return when (tab) {
-        AppTab.LiveTV -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "القنوات" else "Channels"
-        AppTab.Movies -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الأفلام" else "Movies"
-        AppTab.TVShows -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المسلسلات" else "TV Shows"
-        AppTab.Favorites -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المفضلة" else "Favorites"
-        AppTab.Settings -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الإعدادات" else "Settings"
-        else -> tab.localizedLabel(language)
     }
 }
 
@@ -1726,105 +1711,98 @@ private fun MinimizedTabPill(
  * [modifier] carries the per-shell insets: Scaffold content padding on phone,
  * a weight + fill on TV.
  */
+
 @Composable
 private fun EagleXHomeNavigation(
     onSelect: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val language = LocalAppLanguage.current
-    val isArabic = language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC
-    val isTv = rememberLiveTvFormFactor().isTv
+    val arabic = language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC
     val destinations = listOf(
-        AppTab.LiveTV to if (isArabic) "القنوات" else "Channels",
-        AppTab.Movies to if (isArabic) "أفلام" else "Movies",
-        AppTab.TVShows to if (isArabic) "مسلسلات" else "TV Shows",
-        AppTab.Favorites to if (isArabic) "مفضلة" else "Favorites",
-        AppTab.Settings to if (isArabic) "إعدادات" else "Settings",
+        AppTab.LiveTV to if (arabic) "القنوات" else "Live TV",
+        AppTab.Movies to if (arabic) "الأفلام" else "Movies",
+        AppTab.TVShows to if (arabic) "المسلسلات" else "TV Shows",
+        AppTab.Favorites to if (arabic) "المفضلة" else "Favorites",
+        AppTab.Settings to if (arabic) "الإعدادات" else "Settings",
     )
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = if (isTv) 56.dp else 20.dp, vertical = if (isTv) 28.dp else 20.dp),
+            .padding(horizontal = 20.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = if (isArabic) "الرئيسية" else "Home",
-            style = if (isTv) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+            text = if (arabic) "الرئيسية" else "Home",
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
         )
-        Spacer(Modifier.height(if (isTv) 28.dp else 20.dp))
-        if (isTv) {
+        Spacer(Modifier.height(24.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth().focusGroup(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                destinations.forEach { (tab, label) ->
-                    EagleXHomeNavCard(tab, label, true, { onSelect(tab) }, Modifier.weight(1f))
+                destinations.take(2).forEach { (tab, label) ->
+                    EagleXHomeCard(tab, label, { onSelect(tab) }, Modifier.weight(1f))
                 }
             }
-        } else {
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    destinations.take(2).forEach { (tab, label) ->
-                        EagleXHomeNavCard(tab, label, false, { onSelect(tab) }, Modifier.weight(1f))
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    destinations.drop(2).take(2).forEach { (tab, label) ->
-                        EagleXHomeNavCard(tab, label, false, { onSelect(tab) }, Modifier.weight(1f))
-                    }
-                }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    val (tab, label) = destinations.last()
-                    EagleXHomeNavCard(tab, label, false, { onSelect(tab) }, Modifier.fillMaxWidth(0.5f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                destinations.drop(2).take(2).forEach { (tab, label) ->
+                    EagleXHomeCard(tab, label, { onSelect(tab) }, Modifier.weight(1f))
                 }
             }
+            val (settingsTab, settingsLabel) = destinations.last()
+            EagleXHomeCard(
+                settingsTab,
+                settingsLabel,
+                { onSelect(settingsTab) },
+                Modifier.fillMaxWidth(0.5f).align(Alignment.CenterHorizontally),
+            )
         }
     }
 }
 
 @Composable
-private fun EagleXHomeNavCard(
+private fun EagleXHomeCard(
     tab: AppTab,
     label: String,
-    isTv: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(if (isTv) 20.dp else 18.dp)
-    val icon = tab.iconSelected
+    val shape = RoundedCornerShape(18.dp)
     Column(
         modifier = modifier
-            .height(if (isTv) 118.dp else 92.dp)
+            .height(96.dp)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
-            .border(
-                width = if (focused) 2.dp else 1.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                shape = shape,
-            )
-            .onFocusChanged { focused = it.isFocused }
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.82f))
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
-            imageVector = icon,
+            imageVector = tab.iconSelected,
             contentDescription = label,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(if (isTv) 32.dp else 28.dp),
+            modifier = Modifier.size(28.dp),
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(7.dp))
         Text(
             text = label,
-            style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
         )
     }
 }
@@ -1878,11 +1856,8 @@ private fun MainTabContent(
     val renderTabs = if (selectedTab == AppTab.Home) listOf(AppTab.Home) else keepAliveTabs
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
-            AppTab.Home -> {
-                EagleXHomeNavigation(
-                    onSelect = onSelectTab,
-                )
-            }
+            AppTab.Home -> EagleXHomeNavigation(onSelect = onSelectTab)
+
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
