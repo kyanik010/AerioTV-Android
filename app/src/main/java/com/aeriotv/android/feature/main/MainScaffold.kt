@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -84,6 +85,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1764,13 +1766,19 @@ private fun AerioMobileHomeScreen(
                     .padding(horizontal = 2.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (isEnglish) "Eagle X" else "Eagle X",
-                        color = Color.White,
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.SemiBold,
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.eagle_x_logo),
+                        contentDescription = "Eagle X",
+                        modifier = Modifier
+                            .height(42.dp)
+                            .widthIn(max = 150.dp),
+                        contentScale = ContentScale.Fit,
                     )
+                    Spacer(Modifier.width(12.dp))
                     Text(
                         text = if (isEnglish) "Home" else "الرئيسية",
                         color = Color(0xFFA7AFBF),
