@@ -2,7 +2,9 @@ name: Build APK
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feat/lumen-mobile-redesign-from-59d033e
   pull_request:
     branches: [main]
   workflow_dispatch:
