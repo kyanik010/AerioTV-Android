@@ -791,18 +791,6 @@ fun MainScaffold(
     // bottom NavigationBar. D-pad friendly, overscan-safe, and mirrors the
     // tvOS TabView. Phone / tablet / fold keep the bottom nav below.
     val isTv = rememberLiveTvFormFactor().isTv
-    if (isTv && showHome) {
-        HomeSectionMenu(
-            availableTabs = tabs,
-            onSelect = { tab ->
-                selectedTab = tab
-                initialTabApplied = true
-                showHome = false
-            },
-        )
-        return
-    }
-
     if (isTv) {
         // tvOS layout parity (Archie 2026-05-28 reference shot): when the
         // mini-player is active, the top chrome (centered nav tabs +
