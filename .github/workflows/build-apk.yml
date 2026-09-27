@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: [main]
+    branches: [main, ui-mobile-redesign-from-tv-shell]
   pull_request:
     branches: [main]
   workflow_dispatch:
