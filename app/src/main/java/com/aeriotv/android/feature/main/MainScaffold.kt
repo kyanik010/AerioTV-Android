@@ -1129,7 +1129,7 @@ fun MainScaffold(
                         fullScreenOverlay.value?.invoke()
             }
         }
-        return
+        return@tvShellBox
     }
 
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
@@ -1287,7 +1287,7 @@ fun MainScaffold(
             }
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .align(Alignment.CenterHorizontally)
                     .fillMaxWidth()
                     .onGloballyPositioned {
                         com.aeriotv.android.feature.player.PhoneMiniChrome
