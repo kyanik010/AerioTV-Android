@@ -1766,7 +1766,7 @@ private fun EagleXHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(18.dp)
-    Column(
+    Row(
         modifier = modifier
             .height(72.dp)
             .clip(shape)
