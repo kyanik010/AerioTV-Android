@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -382,7 +383,7 @@ private fun LumenPosterCard(
     image: String?,
     onClick: () -> Unit,
 ) {
-    var focused = false
+    val focused = remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .width(132.dp)
@@ -454,8 +455,7 @@ private fun LumenNavButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
 ) {
-    var focused = false
-    Column(
+    val focused = remember { mutableStateOf(false) }
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(if (focused.value) Color(0x334FC8E8) else Color.Transparent)
