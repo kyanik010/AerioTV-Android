@@ -27,6 +27,7 @@ enum class AppTab(
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
 ) {
+    // Home landing surface is rendered by MainScaffold.
     Home("home", "Home", Icons.Filled.LiveTv, Icons.Outlined.LiveTv),
     LiveTV("livetv", "Live TV", Icons.Filled.LiveTv, Icons.Outlined.LiveTv),
     Favorites("favorites", "Favorites", Icons.Filled.Favorite, Icons.Outlined.Favorite),
