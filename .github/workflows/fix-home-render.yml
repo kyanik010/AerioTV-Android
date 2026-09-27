@@ -42,17 +42,18 @@ jobs:
           )
           s = s[:m.start()] + replacement + s[m.end():]
 
-          end_pattern = r'(?m)^([ \t]*)visited = visitedTabs,\n\1modifier = Modifier\.fillMaxSize\(\),\n\1\)\n(\1// No "Syncing" pill on phone:)'
+          end_pattern = r'(?m)^([ \t]+)visited = visitedTabs,\n\1modifier = Modifier\.fillMaxSize\(\),\n(\s*)\)\n(\2// No "Syncing" pill on phone:)'
           e = re.search(end_pattern, s)
           if not e:
               raise SystemExit('MainTabContent end anchor not found')
-          ei = e.group(1)
+          inner = e.group(1)
+          outer = e.group(2)
           end_replacement = (
-              f'{ei}visited = visitedTabs,\n'
-              f'{ei}modifier = Modifier.fillMaxSize(),\n'
-              f'{ei})\n'
-              f'{ei}}}\n'
-              f'{e.group(2)}'
+              f'{inner}visited = visitedTabs,\n'
+              f'{inner}modifier = Modifier.fillMaxSize(),\n'
+              f'{outer})\n'
+              f'{outer}}}\n'
+              f'{e.group(3)}'
           )
           s = s[:e.start()] + end_replacement + s[e.end():]
           p.write_text(s, encoding='utf-8')
@@ -61,7 +62,6 @@ jobs:
         shell: bash
         run: |
           grep -n -A8 -B2 'if (selectedTab == AppTab.Home)' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
-          grep -n -A4 'EagleXHomeNavigation(' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
           python - <<'PY'
           from pathlib import Path
           s=Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt').read_text()
