@@ -1764,6 +1764,7 @@ private fun AerioMobileHomeScreen(
     }
 }
 
+@Composable
 private fun MainTabContent(
     selectedTab: AppTab,
     /** Tabs currently present; only these are kept alive. */
