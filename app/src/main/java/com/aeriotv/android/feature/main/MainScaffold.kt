@@ -1874,6 +1874,11 @@ private fun MainTabContent(
     val keepAliveTabs = tabs.filter { it in visited }
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
+            AppTab.Home -> {
+                EagleXHomeNavigation(
+                    onSelect = onSelectTab,
+                )
+            }
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
