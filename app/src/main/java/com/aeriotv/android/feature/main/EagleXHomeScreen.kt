@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.*
@@ -434,7 +433,6 @@ private fun GlassIconButton(
             Box(
                 modifier = Modifier
                     .size(size * 0.7f)
-                    .blur(12.dp)
                     .background(tint.copy(alpha = 0.4f), CircleShape)
             )
         }
@@ -584,7 +582,6 @@ private fun NavPanelItem(
                     Box(
                         modifier = Modifier
                             .size(80.dp)
-                            .blur(20.dp)
                             .background(item.tint.copy(alpha = 0.5f), CircleShape)
                     )
                 }
