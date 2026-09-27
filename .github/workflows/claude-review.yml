@@ -1,0 +1,39 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this Pull Request for the AerioTV Android project.
+
+            Focus on:
+            - Kotlin and Jetpack Compose correctness
+            - Android TV compatibility
+            - RTL/LTR behavior
+            - UI regressions
+            - playback and player stability
+            - lifecycle and state management
+            - Gradle/build issues
+            - crashes and obvious security problems
+            - unnecessary or risky dependencies
+
+            Do not modify files. Provide concrete findings with file paths,
+            explain why each issue matters, and distinguish confirmed problems
+            from suggestions.
