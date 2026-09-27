@@ -412,7 +412,7 @@ fun MainScaffold(
         if (moviesDenied) stickyTabs -= AppTab.Movies
         if (seriesDenied) stickyTabs -= AppTab.TVShows
         if (moviesDenied && seriesDenied) stickyTabs -= AppTab.OnDemand
-        visibleTabs(
+        val contentTabs = visibleTabs(
             hasFavorites = AppTab.Favorites in stickyTabs,
             hasVod = AppTab.OnDemand in stickyTabs,
             hasRecordings = AppTab.DVR in stickyTabs,
@@ -420,6 +420,7 @@ fun MainScaffold(
             hasMovies = AppTab.Movies in stickyTabs,
             hasSeries = AppTab.TVShows in stickyTabs,
         )
+        if (isTvShell) contentTabs else listOf(AppTab.Home) + contentTabs
     }
     // One line per change of the inputs, so "why is the tab hidden" is provable
     // from logcat instead of from the screen.
@@ -526,7 +527,7 @@ fun MainScaffold(
     val settingsVm: SettingsViewModel = hiltViewModel()
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var initialTabApplied by rememberSaveable { mutableStateOf(false) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
@@ -568,7 +569,7 @@ fun MainScaffold(
     LaunchedEffect(tabs) {
         // Search is never IN `tabs` (it's the floating bar button, not a
         // pill) but is a perfectly valid selection - don't bounce it.
-        if (selectedTab !in tabs && selectedTab != AppTab.Search) {
+        if (selectedTab !in tabs && selectedTab != AppTab.Search && selectedTab != AppTab.Home && selectedTab != AppTab.Favorites) {
             selectedTab = AppTab.LiveTV
         }
     }
@@ -1712,6 +1713,58 @@ private fun MinimizedTabPill(
  * a weight + fill on TV.
  */
 @Composable
+@Composable
+private fun AerioMobileHomeScreen(
+    onMovies: () -> Unit,
+    onSeries: () -> Unit,
+    onChannels: () -> Unit,
+    onFavorites: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    val language = LocalAppLanguage.current
+    val isEnglish = language == com.aeriotv.android.core.preferences.AppLanguage.ENGLISH
+    val items = listOf(
+        Triple(AppTab.Movies, if (isEnglish) "Movies" else "الأفلام", onMovies),
+        Triple(AppTab.TVShows, if (isEnglish) "Series" else "المسلسلات", onSeries),
+        Triple(AppTab.LiveTV, if (isEnglish) "Channels" else "القنوات", onChannels),
+        Triple(AppTab.Favorites, if (isEnglish) "Favorites" else "المفضلة", onFavorites),
+        Triple(AppTab.Settings, if (isEnglish) "Settings" else "الإعدادات", onSettings),
+    )
+    Box(Modifier.fillMaxSize().background(Color(0xFF080A0F)).padding(horizontal = 18.dp, vertical = 22.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize().widthIn(max = 520.dp).align(Alignment.Center),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text("AerioTV", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Spacer(Modifier.height(6.dp))
+            items.forEach { (tab, label, action) ->
+                val interaction = remember { MutableInteractionSource() }
+                val focused by interaction.collectIsFocusedAsState()
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(72.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0xFF151A23).copy(alpha = if (focused) 0.92f else 0.72f))
+                        .border(1.dp, Color.White.copy(alpha = if (focused) 0.16f else 0.07f), RoundedCornerShape(24.dp))
+                        .clickable(interactionSource = interaction, indication = null, onClick = action)
+                        .focusable(interactionSource = interaction),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.07f)), contentAlignment = Alignment.Center) {
+                            Icon(tab.iconSelected, null, tint = Color.White.copy(alpha = 0.92f), modifier = Modifier.size(21.dp))
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Text(label, color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        Text("›", color = Color(0xFFA7AFBF), fontSize = 28.sp, fontWeight = FontWeight.Light)
+                    }
+                }
+            }
+        }
+    }
+}
+
 private fun MainTabContent(
     selectedTab: AppTab,
     /** Tabs currently present; only these are kept alive. */
@@ -1755,10 +1808,19 @@ private fun MainTabContent(
     // pulls are gated on [LocalTabIsActive]. A tab absent from [tabs] (no
     // favorites, VOD or recordings) is not composed at all. Search is the
     // floating screen and is never kept.
-    if (selectedTab != AppTab.Search && selectedTab !in visited) visited.add(selectedTab)
+    if (selectedTab != AppTab.Search && selectedTab != AppTab.Home && selectedTab != AppTab.Favorites && selectedTab !in visited) visited.add(selectedTab)
     val keepAliveTabs = tabs.filter { it in visited }
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
+            AppTab.Home -> {
+                AerioMobileHomeScreen(
+                    onMovies = { onSelectTab(AppTab.Movies) },
+                    onSeries = { onSelectTab(AppTab.TVShows) },
+                    onChannels = { onSelectTab(AppTab.LiveTV) },
+                    onFavorites = { onSelectTab(AppTab.Favorites) },
+                    onSettings = { onSelectTab(AppTab.Settings) },
+                )
+            }
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
@@ -1843,6 +1905,9 @@ private fun MainTabContent(
             }
             else -> Unit
         } }
+        if (selectedTab == AppTab.Home || selectedTab == AppTab.Favorites) {
+            render(selectedTab)
+        }
         if (selectedTab == AppTab.Search) {
             render(AppTab.Search)
         }
