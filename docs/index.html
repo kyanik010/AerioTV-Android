@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eagle X — Lumen Preview</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><b>EAGLE</b><span>X</span></div>
+  <nav>
+    <button class="active" data-tab="live">◉ <label>القنوات</label></button>
+    <button data-tab="movies">▣ <label>الأفلام</label></button>
+    <button data-tab="series">▤ <label>المسلسلات</label></button>
+    <button data-tab="fav">♥ <label>المفضلة</label></button>
+    <button data-tab="settings">⚙ <label>الإعدادات</label></button>
+  </nav>
+  <div class="search">⌕</div>
+</header>
+<main>
+  <section class="hero">
+    <div class="eyebrow">مميز</div>
+    <h1 id="title">The Last Horizon</h1>
+    <div class="meta">2026 <i>•</i> 8.7</div>
+    <p>واجهة Lumen السينمائية المصممة لشاشات Android TV، مع تركيز واضح على المحتوى والتنقل بالريموت.</p>
+    <div class="actions"><button class="primary">تشغيل الآن</button><button>تصفح المكتبة</button></div>
+  </section>
+  <section class="rail"><h2>أفلام</h2><div class="cards" id="movies"></div></section>
+  <section class="rail"><h2>مسلسلات</h2><div class="cards" id="series"></div></section>
+</main>
+<footer><span>Guest</span><i>•</i><span>الصلاحية</span><b>—</b><span class="status">Preview — Lumen</span></footer>
+</div>
+<script src="./app.js"></script>
+</body></html>
