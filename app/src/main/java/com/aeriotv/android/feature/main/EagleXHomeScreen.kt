@@ -64,6 +64,9 @@ private val HomeText = Color(0xFFF7F9FC)
 private val HomeMuted = Color(0xFFA7AFBF)
 private val HomeAccent = Color(0xFF4FC8E8)
 
+private const val HOME_RAIL_LIMIT = 12
+private const val HOME_FEATURED_LIMIT = 8
+
 @Composable
 fun EagleXHomeScreen(
     onSelectTab: (AppTab) -> Unit,
@@ -85,14 +88,28 @@ fun EagleXHomeScreen(
     val moviesState by moviesLibrary.collectAsState()
     val seriesState by seriesLibrary.collectAsState()
 
+    // Home only renders a small preview. Do not materialize the entire VOD
+    // library again here: the ViewModel already owns the full catalog-backed
+    // list for Movies/Series. Copying tens of thousands of MediaItem objects
+    // into filtered Home lists can spike heap usage exactly when Home is first
+    // composed after activation and can turn a recoverable load into an
+    // Android process kill/crash.
     val movies = remember(moviesState.items) {
-        moviesState.items.filter { !it.posterUrl.isNullOrBlank() }.distinctBy { it.key }
+        moviesState.items.asSequence()
+            .filter { !it.posterUrl.isNullOrBlank() }
+            .distinctBy { it.key }
+            .take(HOME_RAIL_LIMIT)
+            .toList()
     }
     val series = remember(seriesState.items) {
-        seriesState.items.filter { !it.posterUrl.isNullOrBlank() }.distinctBy { it.key }
+        seriesState.items.asSequence()
+            .filter { !it.posterUrl.isNullOrBlank() }
+            .distinctBy { it.key }
+            .take(HOME_RAIL_LIMIT)
+            .toList()
     }
     val featured = remember(movies, series) {
-        (movies + series).take(8)
+        (movies.asSequence() + series.asSequence()).take(HOME_FEATURED_LIMIT).toList()
     }
 
     var selectedIndex by remember { mutableIntStateOf(0) }
