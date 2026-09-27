@@ -568,7 +568,9 @@ fun MainScaffold(
     LaunchedEffect(tabs) {
         // Search is never IN `tabs` (it's the floating bar button, not a
         // pill) but is a perfectly valid selection - don't bounce it.
-        if (selectedTab !in tabs && selectedTab != AppTab.Search) {
+        // Home is a shell-level landing page, not a content tab, so it is
+        // intentionally absent from [tabs]. Never bounce it to Live TV.
+        if (selectedTab !in tabs && selectedTab != AppTab.Search && selectedTab != AppTab.Home) {
             selectedTab = AppTab.LiveTV
         }
     }
