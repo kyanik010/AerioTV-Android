@@ -999,8 +999,14 @@ fun MainScaffold(
                         onDrawnBottomChanged = { barDrawnBottomPx = it },
                     )
                 }
-                MainTabContent(
-                    selectedTab = selectedTab,
+                if (selectedTab == AppTab.Home) {
+                    EagleXHomeNavigation(
+                        onSelect = { selectedTab = it; initialTabApplied = true },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    MainTabContent(
+                        selectedTab = selectedTab,
                     tabs = tabs,
                     onChannelClick = onChannelClick,
                     onMovieClick = onMovieClick,
@@ -1265,6 +1271,7 @@ fun MainScaffold(
                 visited = visitedTabs,
                 modifier = Modifier.fillMaxSize(),
             )
+            }
             // No "Syncing" pill on phone: it sat on top of the Live TV
             // header's sidebar button, and the tab already shows a spinner.
             // Bottom overlay: floating mini-player card above the floating tab
