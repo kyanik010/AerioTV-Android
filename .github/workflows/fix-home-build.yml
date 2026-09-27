@@ -38,6 +38,8 @@ jobs:
               if s.count(tail) != 1:
                   raise SystemExit(f'Expected exactly one MainTabContent tail, found {s.count(tail)}')
               s = s.replace(tail, replacement_tail, 1)
+          s = s.replace('return@tvShellBox', 'return')
+          s = s.replace('horizontalAlignment = Alignment.Center,', 'horizontalAlignment = Alignment.CenterHorizontally,')
           p.write_text(s)
           PY
           git diff --check
