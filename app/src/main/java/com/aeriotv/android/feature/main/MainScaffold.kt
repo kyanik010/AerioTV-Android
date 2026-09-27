@@ -1171,6 +1171,11 @@ fun MainScaffold(
     val topTabBar = viewport.prefersTopTabBar
     val tabBarScale = viewport.topTabBarScale
 
+    // Eagle X Home is a dedicated landing surface. Its own top navigation is
+    // the only navigation chrome on Home; the legacy global tab bar must not
+    // render below it on phones or above it on tablets.
+    val showTabChrome = selectedTab != AppTab.Home
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -1193,10 +1198,14 @@ fun MainScaffold(
       val navBarInset = WindowInsets.navigationBars.asPaddingValues()
           .calculateBottomPadding()
       androidx.compose.runtime.CompositionLocalProvider(
-          LocalTabBarBottomInset provides if (topTabBar) 16.dp else 96.dp + navBarInset,
+          LocalTabBarBottomInset provides when {
+              selectedTab == AppTab.Home -> 0.dp
+              topTabBar -> 16.dp
+              else -> 96.dp + navBarInset
+          },
       ) {
       androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-        if (topTabBar) {
+        if (topTabBar && showTabChrome) {
             // Keeps the phone floating mini's top corners below this bar.
             androidx.compose.runtime.DisposableEffect(Unit) {
                 onDispose {
@@ -1400,7 +1409,7 @@ fun MainScaffold(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                if (!topTabBar) {
+                if (!topTabBar && showTabChrome) {
                     // iOS 26 parity (Logan 2026-09-09): scrolling down does not
                     // hide the bar, it MINIMIZES it to a small pill in the
                     // bottom-left corner showing the active tab's icon. Tapping
