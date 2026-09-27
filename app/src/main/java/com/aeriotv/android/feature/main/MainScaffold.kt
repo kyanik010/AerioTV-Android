@@ -962,6 +962,109 @@ fun MainScaffold(
         return
     }
 
+    // Mobile cinematic shell: separate from the Android TV sidebar so phone layout can
+    // use compact touch targets, a clean content canvas, and a floating glass tab bar.
+    // The existing tab/content logic remains unchanged; only the phone chrome is replaced.
+    if (!isTv) {
+        val language = LocalAppLanguage.current
+        val isArabic = language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC
+        val mobileTabs = buildList {
+            add(AppTab.LiveTV)
+            if (AppTab.Movies in tabs) add(AppTab.Movies)
+            if (AppTab.TVShows in tabs) add(AppTab.TVShows)
+            if (AppTab.Favorites in tabs) add(AppTab.Favorites)
+            if (AppTab.DVR in tabs) add(AppTab.DVR)
+            if (AppTab.Settings in tabs) add(AppTab.Settings)
+        }
+        val mobileNav = mobileTabs.take(5)
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(listOf(Color(0xFF151D2A), Color(0xFF0B111A), Color(0xFF080C13)))
+            ),
+        ) {
+            Box(
+                modifier = Modifier.align(Alignment.TopEnd).size(260.dp).background(
+                    Brush.radialGradient(listOf(Color(0x224FC8E8), Color.Transparent))
+                ),
+            )
+            androidx.compose.runtime.CompositionLocalProvider(LocalTabBarBottomInset provides 88.dp) {
+                MainTabContent(
+                    selectedTab = selectedTab,
+                    tabs = tabs,
+                    onChannelClick = onChannelClick,
+                    onMovieClick = onMovieClick,
+                    onSeriesClick = onSeriesClick,
+                    onEpisodeResume = onEpisodeResume,
+                    onResumeMovie = onResumeMovie,
+                    onPlayMovie = onPlayMovie,
+                    onPlayMovieFromStart = onPlayMovieFromStart,
+                    onEpisodeResumeFromStart = onEpisodeResumeFromStart,
+                    onPlayRecording = onPlayRecording,
+                    onPlayCatchup = onPlayCatchup,
+                    onLaunchMultiview = onLaunchMultiview,
+                    onWatchLive = onWatchLive,
+                    onWatchFromBeginning = onWatchFromBeginning,
+                    onOpenSearch = onOpenSearch,
+                    onSelectTab = { selectedTab = it; initialTabApplied = true },
+                    viewModel = viewModel,
+                    visited = visitedTabs,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 10.dp).height(68.dp)
+                    .clip(RoundedCornerShape(22.dp)).background(Color(0xE6171E29))
+                    .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(22.dp)).padding(horizontal = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                mobileNav.forEach { tab ->
+                    val selected = selectedTab == tab
+                    val label = when (tab) {
+                        AppTab.LiveTV -> if (isArabic) "الرئيسية" else "Home"
+                        AppTab.Movies -> if (isArabic) "الأفلام" else "Movies"
+                        AppTab.TVShows -> if (isArabic) "المسلسلات" else "Series"
+                        AppTab.Favorites -> if (isArabic) "المفضلة" else "Favorites"
+                        AppTab.DVR -> if (isArabic) "التسجيلات" else "DVR"
+                        AppTab.Settings -> if (isArabic) "الإعدادات" else "Settings"
+                        else -> tab.localizedLabel(language)
+                    }
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                            .clip(RoundedCornerShape(17.dp))
+                            .background(if (selected) Color(0x334FC8E8) else Color.Transparent)
+                            .border(1.dp, if (selected) Color(0x884FC8E8) else Color.Transparent, RoundedCornerShape(17.dp))
+                            .clickable { selectedTab = tab; initialTabApplied = true }
+                            .padding(horizontal = 3.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Icon(
+                                imageVector = if (selected) tab.iconSelected else tab.iconUnselected,
+                                contentDescription = label,
+                                tint = if (selected) Color(0xFF4FC8E8) else Color(0xFFB5BECC),
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Text(
+                                text = label,
+                                color = if (selected) Color.White else Color(0xFFB5BECC),
+                                fontSize = 10.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+            }
+            Text(
+                text = "Eagle X", color = Color(0xAAFFFFFF), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 14.dp),
+            )
+        }
+        return
+    }
+
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
     // scroll up. A NestedScrollConnection on the content host sees every
     // tab's Lazy*/ScrollView deltas without hoisting any per-tab scroll
