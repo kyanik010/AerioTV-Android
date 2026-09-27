@@ -1579,33 +1579,6 @@ private fun FloatingTabBar(
     onSelect: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2026-07-12 (user report: mistapping channels behind the pill when
-    // changing tabs): sized up to the iPhone bar's proportions - the pill
-    // now spans the width minus side margins with evenly distributed,
-    // taller tab targets instead of a compact wrap-content cluster.
-    // Phone-sized pill on every window: on a foldable's inner display or a
-    // landscape phone it centres at 600 dp instead of spanning the width
-    // (Logan 2026-09-08: "WAY too big").
-    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-    Row(
-        modifier = modifier
-            .widthIn(max = 600.dp)
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .clip(RoundedCornerShape(36.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                RoundedCornerShape(36.dp),
-            )
-            // iPhone bar height (~53 pt): the Android pill @Composable
-private fun FloatingTabBar(
-    tabs: List<AppTab>,
-    selected: AppTab,
-    onSelect: (AppTab) -> Unit,
-    modifier: Modifier = Modifier,
-) {
     HomeCategoryCardBar(
         tabs = tabs,
         selected = selected,
@@ -1665,10 +1638,7 @@ private fun HomeCategoryCardBar(
                         shape,
                     )
                     .clickable(enabled = available) { onSelect(tab) }
-                    .padding(
-                        horizontal = 8.dp * scale,
-                        vertical = 11.dp * scale,
-                    ),
+                    .padding(horizontal = 8.dp * scale, vertical = 11.dp * scale),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp * scale),
             ) {
@@ -1694,18 +1664,45 @@ private fun HomeCategoryCardBar(
 
 @Composable
 private fun homeCategoryLabel(tab: AppTab): String {
-    val arabic = com.aeriotv.android.core.preferences.LocalAppLanguage.current
+    val language = LocalAppLanguage.current
     return when (tab) {
-        AppTab.LiveTV -> if (arabic == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "القنوات" else "Channels"
-        AppTab.Movies -> if (arabic == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الأفلام" else "Movies"
-        AppTab.TVShows -> if (arabic == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المسلسلات" else "TV Shows"
-        AppTab.Favorites -> if (arabic == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المفضلة" else "Favorites"
-        AppTab.Settings -> if (arabic == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الإعدادات" else "Settings"
-        else -> tab.localizedLabel(arabic)
+        AppTab.LiveTV -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "القنوات" else "Channels"
+        AppTab.Movies -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الأفلام" else "Movies"
+        AppTab.TVShows -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المسلسلات" else "TV Shows"
+        AppTab.Favorites -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "المفضلة" else "Favorites"
+        AppTab.Settings -> if (language == com.aeriotv.android.core.preferences.AppLanguage.ARABIC) "الإعدادات" else "Settings"
+        else -> tab.localizedLabel(language)
     }
 }
 
-ize(22.dp),
+/** The minimized tab bar: one capsule in the bottom-left corner carrying the
+ *  active tab's icon, the way the iOS 26 bar collapses when the content
+ *  scrolls down. Same height as the full pill so nothing shifts. */
+@Composable
+private fun MinimizedTabPill(
+    tab: AppTab,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxWidth()) {
+        androidx.compose.foundation.layout.Box(
+            contentAlignment = Alignment.Center,
+            modifier = modifier
+                .size(width = 64.dp, height = 52.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    RoundedCornerShape(26.dp),
+                )
+                .clickable(onClick = onClick),
+        ) {
+            Icon(
+                imageVector = tab.iconSelected,
+                contentDescription = "Show tab bar, ${tab.localizedLabel(LocalAppLanguage.current)}",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
             )
         }
     }
