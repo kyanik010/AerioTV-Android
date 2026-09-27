@@ -527,7 +527,7 @@ fun MainScaffold(
     val settingsVm: SettingsViewModel = hiltViewModel()
     val defaultTabPref by settingsVm.defaultTab.collectAsStateWithLifecycle(initialValue = "")
 
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.LiveTV) }
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var initialTabApplied by rememberSaveable { mutableStateOf(false) }
     // Which tabs are already composed and alive (see MainTabContent). Hoisted
     // here because the TV tab bar needs it too: switching to a tab that is
@@ -1701,6 +1701,16 @@ private fun MainTabContent(
     val keepAliveTabs = tabs.filter { it in visited }
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
+            AppTab.Home -> {
+                LumenHomeContent(
+                    onMovieClick = onMovieClick,
+                    onSeriesClick = onSeriesClick,
+                    onOpenLiveTv = { onSelectTab(AppTab.LiveTV) },
+                    onOpenMovies = { onSelectTab(AppTab.Movies) },
+                    onOpenSeries = { onSelectTab(AppTab.TVShows) },
+                    onOpenSettings = { onSelectTab(AppTab.Settings) },
+                )
+            }
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
@@ -2617,6 +2627,7 @@ internal fun visibleTabs(
     hasMovies: Boolean = hasVod,
     hasSeries: Boolean = hasVod,
 ): List<AppTab> = buildList {
+    add(AppTab.Home)
     add(AppTab.LiveTV)
     if (hasFavorites) add(AppTab.Favorites)
     if (hasRecordings) add(AppTab.DVR)
