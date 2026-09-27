@@ -74,8 +74,16 @@ fun EagleXHomeScreen(
     viewModel: OnDemandViewModel,
 ) {
     val language = LocalAppLanguage.current
-    val moviesState by viewModel.library(true).collectAsState()
-    val seriesState by viewModel.library(false).collectAsState()
+
+    // Keep the StateFlow wrappers stable. OnDemandViewModel.library() returns
+    // a new read-only wrapper on each call; passing that fresh wrapper directly
+    // to collectAsState() makes the Home screen tear down and recreate both
+    // collectors on every recomposition. Home is the first screen mounted
+    // immediately after activation, so that churn is especially expensive here.
+    val moviesLibrary = remember(viewModel) { viewModel.library(true) }
+    val seriesLibrary = remember(viewModel) { viewModel.library(false) }
+    val moviesState by moviesLibrary.collectAsState()
+    val seriesState by seriesLibrary.collectAsState()
 
     val movies = remember(moviesState.items) {
         moviesState.items.filter { !it.posterUrl.isNullOrBlank() }.distinctBy { it.key }
