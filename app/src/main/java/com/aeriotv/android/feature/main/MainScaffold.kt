@@ -1130,7 +1130,7 @@ fun MainScaffold(
                         fullScreenOverlay.value?.invoke()
             }
         }
-        return@Scaffold
+        return@Box
     }
 
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
