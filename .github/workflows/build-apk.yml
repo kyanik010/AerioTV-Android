@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: [main, ui-mobile-redesign-from-tv-shell]
+    branches: [main, ui-mobile-redesign-from-tv-shell, feat/lumen-tv-home-shared-landscape]
   pull_request:
     branches: [main]
   workflow_dispatch:
