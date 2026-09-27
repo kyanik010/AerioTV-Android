@@ -1129,8 +1129,10 @@ fun MainScaffold(
                         fullScreenOverlay.value?.invoke()
             }
         }
-        return@tvShellBox
+        }
     }
+
+    if (!isTv) {
 
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
     // scroll up. A NestedScrollConnection on the content host sees every
@@ -1511,6 +1513,7 @@ fun MainScaffold(
                 .CompanionRemoteController.Conn.Connected) {
             showCompanionPicker = false
         }
+    }
     }
 }
 
