@@ -21,25 +21,34 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - name: Apply remaining compile fix
+      - name: Apply exact remaining compile fixes
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
           s = p.read_text()
-          if 'return@Scaffold' not in s:
-              raise SystemExit('Expected return@Scaffold was not found')
-          s = s.replace('return@Scaffold', 'return@Box', 1)
+          old_box = '            Box(modifier = Modifier.fillMaxSize()) {\n'
+          old_return = '        return@Box\n'
+          old_align = '                horizontalAlignment = Alignment.CenterHorizontally,\n'
+          if s.count(old_box) != 1:
+              raise SystemExit(f'Expected exactly one TV shell Box, found {s.count(old_box)}')
+          if s.count(old_return) != 1:
+              raise SystemExit(f'Expected exactly one return@Box, found {s.count(old_return)}')
+          if s.count(old_align) != 1:
+              raise SystemExit(f'Expected exactly one cast Column alignment, found {s.count(old_align)}')
+          s = s.replace(old_box, '            tvShellBox@Box(modifier = Modifier.fillMaxSize()) {', 1)
+          s = s.replace(old_return, '        return@tvShellBox\n', 1)
+          s = s.replace(old_align, '', 1)
           p.write_text(s)
           PY
           git diff --check
-          ! grep -n 'return@Scaffold' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
-      - name: Commit source fix
+          ! grep -n 'return@Scaffold\|return@Box' app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
+      - name: Commit source fixes
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt
-          git commit -m 'fix: correct remaining Home scaffold return'
+          git commit -m 'fix: correct Home shell label and cast alignment'
           git push origin HEAD:main
       - name: Build debug APK from fixed source
         run: |
