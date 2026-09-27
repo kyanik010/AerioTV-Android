@@ -1,35 +1,42 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Eagle X — Lumen Preview</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <div class="app">
-<header>
-  <div class="brand"><b>EAGLE</b><span>X</span></div>
-  <nav>
-    <button class="active" data-tab="live">◉ <label>القنوات</label></button>
-    <button data-tab="movies">▣ <label>الأفلام</label></button>
-    <button data-tab="series">▤ <label>المسلسلات</label></button>
-    <button data-tab="fav">♥ <label>المفضلة</label></button>
-    <button data-tab="settings">⚙ <label>الإعدادات</label></button>
+  <main class="home">
+    <section class="hero" aria-label="Featured content">
+      <div class="hero-art" id="heroArt"></div>
+      <div class="hero-shade"></div>
+      <div class="hero-copy">
+        <h1 id="heroTitle">AerioTV</h1>
+        <div class="hero-year" id="heroYear"></div>
+        <p id="heroPlot">Your entertainment, in one cinematic home.</p>
+        <div class="actions">
+          <button class="action primary" id="playBtn">▶ <span>Play</span></button>
+          <button class="action secondary">♡ <span>My List</span></button>
+        </div>
+      </div>
+    </section>
+    <section class="shelf" id="moviesShelf">
+      <h2>Movies</h2><div class="cards" id="movies"></div>
+    </section>
+    <section class="shelf" id="seriesShelf">
+      <h2>TV Shows</h2><div class="cards" id="series"></div>
+    </section>
+  </main>
+
+  <nav class="top-nav" aria-label="Lumen navigation">
+    <button class="nav-btn" data-target="live">▣<span>Live TV</span></button>
+    <button class="nav-btn" data-target="movies">◫<span>Movies</span></button>
+    <button class="nav-btn" data-target="series">▤<span>Series</span></button>
+    <button class="nav-btn" data-target="settings">⚙<span>Settings</span></button>
   </nav>
-  <div class="search">⌕</div>
-</header>
-<main>
-  <section class="hero">
-    <div class="eyebrow">مميز</div>
-    <h1 id="title">The Last Horizon</h1>
-    <div class="meta">2026 <i>•</i> 8.7</div>
-    <p>واجهة Lumen السينمائية المصممة لشاشات Android TV، مع تركيز واضح على المحتوى والتنقل بالريموت.</p>
-    <div class="actions"><button class="primary">تشغيل الآن</button><button>تصفح المكتبة</button></div>
-  </section>
-  <section class="rail"><h2>أفلام</h2><div class="cards" id="movies"></div></section>
-  <section class="rail"><h2>مسلسلات</h2><div class="cards" id="series"></div></section>
-</main>
-<footer><span>Guest</span><i>•</i><span>الصلاحية</span><b>—</b><span class="status">Preview — Lumen</span></footer>
 </div>
 <script src="./app.js"></script>
-</body></html>
+</body>
+</html>
