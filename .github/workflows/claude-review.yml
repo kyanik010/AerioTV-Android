@@ -1,39 +1,56 @@
-name: Claude Code Review
+name: Claude Code Agent
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
+  id-token: write
 
 jobs:
-  claude-review:
+  claude-agent:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
 
-      - name: Claude Code Review
+      - name: Claude Code Agent
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Review this Pull Request for the AerioTV Android project.
+            Work directly on this AerioTV Android Pull Request.
 
-            Focus on:
+            You are an implementation agent, not a review-only agent.
+
+            1. Inspect the current PR, repository structure, and changed files.
+            2. Identify real problems, incomplete implementation, build issues,
+               UI regressions, Android TV issues, RTL/LTR problems, playback
+               stability issues, lifecycle/state problems, and risky dependencies.
+            3. Fix confirmed problems directly in the PR branch.
+            4. Implement missing pieces when they are clearly required by the PR.
+            5. Keep the existing AerioTV architecture and avoid unrelated rewrites.
+            6. Preserve existing functionality unless the PR explicitly changes it.
+            7. Run the appropriate Gradle build/check when practical.
+            8. Commit all useful changes to the current PR branch.
+            9. Do not merge the PR, force-push, rebase, or modify unrelated branches.
+            10. In your final response, summarize exactly what you changed,
+                what you tested, and any remaining issues.
+
+            Important AerioTV requirements:
             - Kotlin and Jetpack Compose correctness
-            - Android TV compatibility
-            - RTL/LTR behavior
-            - UI regressions
-            - playback and player stability
-            - lifecycle and state management
-            - Gradle/build issues
-            - crashes and obvious security problems
-            - unnecessary or risky dependencies
-
-            Do not modify files. Provide concrete findings with file paths,
-            explain why each issue matters, and distinguish confirmed problems
-            from suggestions.
+            - Android TV compatibility and remote/focus navigation
+            - Arabic RTL and English LTR behavior
+            - Clean professional dark streaming UI
+            - Playback and player stability
+            - Lifecycle and state management
+            - Gradle/build stability
+            - Avoid unnecessary dependencies
+          claude_args: |
+            --max-turns 15
+            --allowedTools Edit,Read,Write,Bash(./gradlew assembleDebug)
