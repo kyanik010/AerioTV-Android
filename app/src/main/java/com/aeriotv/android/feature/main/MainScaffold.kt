@@ -153,6 +153,18 @@ import com.aeriotv.android.feature.settings.settingsRouteForDeepLinkPage
 import com.aeriotv.android.feature.settings.visibleSettingsSections
 import com.aeriotv.android.ui.tv.tvFocusScale
 
+/** EntryPoint accessor so MainScaffold can drive pause/destroy on the held
+ * MPV instance without routing through a ViewModel. */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface MainScaffoldEntryPoint {
+    fun exoPlayerHolder(): AerioExoPlayerHolder
+    fun exoWindowState(): com.aeriotv.android.feature.player.ExoWindowState
+    fun castSender(): com.aeriotv.android.core.cast.AerioCastSender
+    fun companionRemote(): com.aeriotv.android.core.cast.companion.CompanionRemoteController
+    fun companionDiscovery(): com.aeriotv.android.core.cast.companion.CompanionDiscovery
+}
+
 /**
  * App-scoped [FocusRequester] for the Android TV top tab bar's "current"
  * focusable surface (the Row of pills, with [Modifier.focusRestorer] so a
