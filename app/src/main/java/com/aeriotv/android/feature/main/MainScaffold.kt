@@ -1000,6 +1000,7 @@ fun MainScaffold(
                 }
                 MainTabContent(
                     selectedTab = selectedTab,
+                    onDemandViewModel = onDemandVm,
                     tabs = tabs,
                     onChannelClick = onChannelClick,
                     onMovieClick = onMovieClick,
@@ -1243,6 +1244,7 @@ fun MainScaffold(
         ) {
             MainTabContent(
                 selectedTab = selectedTab,
+                onDemandViewModel = onDemandVm,
                 tabs = tabs,
                 onChannelClick = onChannelClick,
                 onMovieClick = onMovieClick,
@@ -1748,6 +1750,8 @@ private fun MainTabContent(
     // first minute of every cold launch, and the guide running on a
     // different state timeline than the scaffold).
     viewModel: PlaylistViewModel,
+    /** Hoisted in MainScaffold so Home reuses the same OnDemand VM. */
+    onDemandViewModel: OnDemandViewModel,
     /** Hoisted in MainScaffold; the TV tab bar reads it to skip its settle
      *  window for tabs that are already composed. */
     visited: androidx.compose.runtime.snapshots.SnapshotStateList<AppTab>,
@@ -1765,16 +1769,13 @@ private fun MainTabContent(
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
             AppTab.Home -> {
-                // Reuse the OnDemandViewModel already hoisted by MainScaffold.
-                // EagleXHomeScreen does not need a second Hilt owner lookup when
-                // the Home tab is mounted.
                 EagleXHomeScreen(
                     onSelectTab = onSelectTab,
                     onPlayMovie = onPlayMovie,
                     onPlaySeries = onSeriesClick,
                     username = viewModel.state.value.playlist?.username,
                     expiresAt = accountExpiry,
-                    viewModel = onDemandVm,
+                    viewModel = onDemandViewModel,
                 )
             }
             AppTab.LiveTV -> {
