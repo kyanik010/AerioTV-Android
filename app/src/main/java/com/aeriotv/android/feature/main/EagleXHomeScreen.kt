@@ -121,9 +121,9 @@ fun EagleXHomeScreen(
                 accountId      = "",
                 toolbarFocusers = toolbarFocusers,
                 navFocusers   = navFocusers,
-                onPowerClick   = { },
-                onRefreshClick = { },
-                onUserClick    = { },
+                onPowerClick   = onPowerClick,
+                onRefreshClick = onRefreshClick,
+                onUserClick    = onUserClick,
                 onSettingsClick= { onSelectTab(AppTab.Settings) },
                 onSearchClick  = { onSelectTab(AppTab.Search) }
             )
@@ -139,9 +139,9 @@ fun EagleXHomeScreen(
                 accountId      = "",
                 toolbarFocusers= toolbarFocusers,
                 navFocusers    = navFocusers,
-                onPowerClick   = { },
-                onRefreshClick = { },
-                onUserClick    = { },
+                onPowerClick   = onPowerClick,
+                onRefreshClick = onRefreshClick,
+                onUserClick    = onUserClick,
                 onSettingsClick= { onSelectTab(AppTab.Settings) },
                 onSearchClick  = { onSelectTab(AppTab.Search) }
             )
@@ -187,8 +187,8 @@ private fun PhoneLayout(
             onPowerClick   = { },
             onRefreshClick = { },
             onUserClick    = { },
-            onSettingsClick= { onSelectTab(AppTab.Settings) },
-            onSearchClick  = { onSelectTab(AppTab.Search) }
+            onSettingsClick = onSettingsClick,
+            onSearchClick  = onSearchClick
         )
         Spacer(Modifier.height(24.dp))
 
@@ -239,11 +239,11 @@ private fun TvLayout(
             ToolbarRow(
                 focusers        = toolbarFocusers,
                 navFocuserDown  = navFocusers,
-                onPowerClick   = { },
-                onRefreshClick = { },
-                onUserClick    = { },
-                onSettingsClick= { onSelectTab(AppTab.Settings) },
-                onSearchClick  = { onSelectTab(AppTab.Search) },
+                onPowerClick   = onPowerClick,
+                onRefreshClick = onRefreshClick,
+                onUserClick    = onUserClick,
+                onSettingsClick = onSettingsClick,
+                onSearchClick  = onSearchClick,
                 iconSize        = 52.dp
             )
             Spacer(Modifier.height(32.dp))
@@ -509,7 +509,7 @@ private fun GlassNavPanel(
                     nextDown = if (i < items.lastIndex) focusers[i + 1] else null
                 )
                 if (i < items.lastIndex) {
-                    Divider(
+                    HorizontalDivider(
                         color = GlassBorder.copy(alpha = 0.4f),
                         thickness = 0.5.dp,
                         modifier = Modifier.padding(horizontal = 32.dp)
@@ -697,7 +697,7 @@ fun EagleXSubscriptionCard(
 
             Spacer(Modifier.height(8.dp))
 
-            Divider(color = GlassBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+            HorizontalDivider(color = GlassBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
 
             Spacer(Modifier.height(10.dp))
 
