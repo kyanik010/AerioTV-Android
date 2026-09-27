@@ -25,7 +25,7 @@ jobs:
           p = Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt')
           s = p.read_text(encoding='utf-8')
 
-          pattern = r'(?m)^(\s*)MainTabContent\(\n\1    selectedTab = selectedTab,'
+          pattern = r'(?m)^([ \t]*)MainTabContent\(\n\1    selectedTab = selectedTab,'
           m = re.search(pattern, s)
           if not m:
               raise SystemExit('MainTabContent call anchor not found')
@@ -42,7 +42,7 @@ jobs:
           )
           s = s[:m.start()] + replacement + s[m.end():]
 
-          end_pattern = r'(?m)^(\s*)visited = visitedTabs,\n\1modifier = Modifier\.fillMaxSize\(\),\n\1\)\n(\1// No "Syncing" pill on phone:)'
+          end_pattern = r'(?m)^([ \t]*)visited = visitedTabs,\n\1modifier = Modifier\.fillMaxSize\(\),\n\1\)\n(\1// No "Syncing" pill on phone:)'
           e = re.search(end_pattern, s)
           if not e:
               raise SystemExit('MainTabContent end anchor not found')
@@ -66,7 +66,7 @@ jobs:
           from pathlib import Path
           s=Path('app/src/main/java/com/aeriotv/android/feature/main/MainScaffold.kt').read_text()
           assert s.count('if (selectedTab == AppTab.Home)') == 1
-          assert s.count('EagleXHomeNavigation(') == 2
+          assert s.count('private fun EagleXHomeNavigation(') == 1
           print('Home render wiring verified')
           PY
 
