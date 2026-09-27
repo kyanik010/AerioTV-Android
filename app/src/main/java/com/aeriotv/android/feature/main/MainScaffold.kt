@@ -1759,6 +1759,17 @@ private fun MainTabContent(
     val keepAliveTabs = tabs.filter { it in visited }
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
+            AppTab.Home -> {
+                val onDemandVm: OnDemandViewModel = hiltViewModel()
+                EagleXHomeScreen(
+                    onSelectTab = onSelectTab,
+                    onPlayMovie = onPlayMovie,
+                    onPlaySeries = onSeriesClick,
+                    username = viewModel.state.value.playlist?.username,
+                    expiresAt = accountExpiry,
+                    viewModel = onDemandVm,
+                )
+            }
             AppTab.LiveTV -> {
     LiveTVTabContent(
                     onChannelClick = onChannelClick,
