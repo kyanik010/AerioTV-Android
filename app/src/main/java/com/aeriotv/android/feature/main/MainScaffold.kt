@@ -1806,7 +1806,6 @@ private fun EagleXHomeNavCard(
             )
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
-            .then(if (isTv) Modifier.focusable() else Modifier)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
