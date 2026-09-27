@@ -1129,7 +1129,7 @@ fun MainScaffold(
                         fullScreenOverlay.value?.invoke()
             }
         }
-        return@tvShellBox
+        return
     }
 
     // GH #20: auto-hide the floating tab pill while scrolling down, reveal on
