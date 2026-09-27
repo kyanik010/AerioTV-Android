@@ -121,9 +121,9 @@ fun EagleXHomeScreen(
                 accountId      = "",
                 toolbarFocusers = toolbarFocusers,
                 navFocusers   = navFocusers,
-                onPowerClick   = onPowerClick,
-                onRefreshClick = onRefreshClick,
-                onUserClick    = onUserClick,
+                onPowerClick   = { },
+                onRefreshClick = { },
+                onUserClick    = { },
                 onSettingsClick= { onSelectTab(AppTab.Settings) },
                 onSearchClick  = { onSelectTab(AppTab.Search) }
             )
@@ -139,9 +139,9 @@ fun EagleXHomeScreen(
                 accountId      = "",
                 toolbarFocusers= toolbarFocusers,
                 navFocusers    = navFocusers,
-                onPowerClick   = onPowerClick,
-                onRefreshClick = onRefreshClick,
-                onUserClick    = onUserClick,
+                onPowerClick   = { },
+                onRefreshClick = { },
+                onUserClick    = { },
                 onSettingsClick= { onSelectTab(AppTab.Settings) },
                 onSearchClick  = { onSelectTab(AppTab.Search) }
             )
@@ -184,9 +184,9 @@ private fun PhoneLayout(
         ToolbarRow(
             focusers       = toolbarFocusers,
             navFocuserDown = navFocusers,
-            onPowerClick   = { },
-            onRefreshClick = { },
-            onUserClick    = { },
+            onPowerClick   = onPowerClick,
+            onRefreshClick = onRefreshClick,
+            onUserClick    = onUserClick,
             onSettingsClick = onSettingsClick,
             onSearchClick  = onSearchClick
         )
