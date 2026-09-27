@@ -1713,7 +1713,6 @@ private fun MinimizedTabPill(
  * a weight + fill on TV.
  */
 @Composable
-@Composable
 private fun AerioMobileHomeScreen(
     onMovies: () -> Unit,
     onSeries: () -> Unit,
