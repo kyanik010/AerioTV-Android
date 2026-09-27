@@ -1872,6 +1872,7 @@ private fun MainTabContent(
     // floating screen and is never kept.
     if (selectedTab != AppTab.Search && selectedTab !in visited) visited.add(selectedTab)
     val keepAliveTabs = tabs.filter { it in visited }
+    val renderTabs = if (selectedTab == AppTab.Home) listOf(AppTab.Home) else keepAliveTabs
     Box(modifier = modifier) {
         val render: @Composable (AppTab) -> Unit = { tab -> when (tab) {
             AppTab.Home -> {
@@ -1971,7 +1972,7 @@ private fun MainTabContent(
         // two different parents would dispose and rebuild it, which is the
         // reload this exists to avoid. BackHandlers inside are gated on
         // LocalTabIsActive, so composition order does not matter for Back.
-        keepAliveTabs.forEach { tab ->
+        renderTabs.forEach { tab ->
             val active = tab == selectedTab
             androidx.compose.runtime.key(tab) {
                 CompositionLocalProvider(LocalTabIsActive provides active) {
