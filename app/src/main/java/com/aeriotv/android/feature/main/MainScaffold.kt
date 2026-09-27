@@ -1692,6 +1692,7 @@ private fun HomeCategoryCardBar(
     }
 }
 
+@Composable
 private fun homeCategoryLabel(tab: AppTab): String {
     val arabic = com.aeriotv.android.core.preferences.LocalAppLanguage.current
     return when (tab) {
