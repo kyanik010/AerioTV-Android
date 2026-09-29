@@ -30,10 +30,15 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare dashboard path
+        run: |
+          mkdir -p _pages/admin-dashboard
+          cp -R admin-dashboard/. _pages/admin-dashboard/
+
       - name: Upload dashboard
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './admin-dashboard'
+          path: './_pages'
 
       - name: Deploy to GitHub Pages
         id: deployment
