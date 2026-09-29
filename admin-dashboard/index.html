@@ -99,7 +99,7 @@ function renderDevice(d){
  '<label>الحالة<select id="st-'+d.id+'"><option value="active" '+(d.status==='active'?'selected':'')+'>فعال</option><option value="suspended" '+(d.status==='suspended'?'selected':'')+'>موقوف</option><option value="expired" '+(d.status==='expired'?'selected':'')+'>منتهي</option></select></label>'+
  '<label>تاريخ الانتهاء<input id="ex-'+d.id+'" type="datetime-local" value="'+toLocal(d.expires_at)+'"></label>'+
  '</div>'+
- '<div class="subbox"><h3>الصوت — M3U</h3><input id="am3u-'+d.id+'" placeholder="رابط M3U" value="'+esc(a.m3u_url)+'"></div>'+
+ '<div class="subbox"><h3>الصوت — M3U <span class="muted">(اختياري)</span></h3><input id="am3u-'+d.id+'" placeholder="رابط M3U — اختياري" value="'+esc(a.m3u_url)+'"></div>'+
  '<button onclick="configureDevice(\''+d.id+'\')">حفظ وربط كاشتراك مدفوع</button>'+
  '</div>'
 }
@@ -126,7 +126,7 @@ async function configureDevice(id){
   const body={action:'configure_device',device_id:id,status:$('st-'+id).value,expires_at:ex?new Date(ex).toISOString():null,
    video:{server_url:$('vhost-'+id).value.trim(),username:$('vuser-'+id).value.trim(),password:$('vpass-'+id).value},
    audio:{m3u_url:$('am3u-'+id).value.trim()}};
-  const missing=[];if(!body.video.server_url)missing.push('Host');if(!body.video.username)missing.push('Username');if(!body.video.password)missing.push('Password');if(!body.audio.m3u_url)missing.push('رابط M3U');
+  const missing=[];if(!body.video.server_url)missing.push('Host');if(!body.video.username)missing.push('Username');if(!body.video.password)missing.push('Password');
   if(missing.length)throw Error('أكمل: '+missing.join('، '));
   await call(body);alert('تم حفظ الاشتراك وربطه بالجهاز.');await loadAll()
  }catch(e){alert(e.message)}
