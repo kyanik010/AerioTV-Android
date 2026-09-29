@@ -60,7 +60,7 @@ async function boot(){
  catch(e){localStorage.removeItem('aeriotv_admin_session');showLogin()}
 }
 function showLogin(){$('login').style.display='block';$('app').style.display='none'}
-function showApp(){$('login').style.display='none';$('app').style.display='block';$('who').textContent=session?.user?.email||''}
+function showApp(){$('login').style.display='none';$('app').style.display='block';$('who').textContent=(session?.user?.email||'')+' · تحديث تلقائي كل 30 ثانية';startAutoRefresh()}
 async function login(){
  $('loginMsg').textContent='جاري الاتصال بـ Supabase...';$('loginBtn').disabled=true;
  try{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)throw Error('أدخل البريد الإلكتروني وكلمة المرور.');
@@ -132,6 +132,18 @@ async function configureDevice(id){
  }catch(e){alert(e.message)}
 }
 async function loadAll(){try{await Promise.all([loadStats(),loadDevices(0)])}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
+
+// Keep the dashboard current without requiring a manual refresh. The app-side
+// activation endpoint updates last_seen_at and trial-register attaches the
+// submitted Xtream credentials to the same device row.
+let refreshTimer=null;
+function startAutoRefresh(){
+ if(refreshTimer)clearInterval(refreshTimer);
+ refreshTimer=setInterval(()=>{if(session?.access_token)loadAll()},30000);
+}
+function stopAutoRefresh(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}}
+const originalLogout=logout;
+logout=()=>{stopAutoRefresh();originalLogout()};
 $('loginBtn').addEventListener('click',login);boot();
 </script>
 </body>
