@@ -1,150 +1,32 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Eagle X2 Control</title>
 <style>
-body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#080A0F;color:#fff;margin:0}
-.wrap{max-width:1100px;margin:24px auto;padding:16px}.card{background:#151A23;border:1px solid #27303d;border-radius:20px;padding:20px;margin-bottom:16px}
-h1,h2,h3{margin-top:0}.muted{color:#A7AFBF;font-size:13px}.error{color:#FF9B9B}.ok{color:#8DE0AA}
-input,select,button{width:100%;box-sizing:border-box;padding:12px;border-radius:11px;border:1px solid #34404f;background:#10141C;color:#fff;margin:5px 0}
-button{cursor:pointer;background:#315efb;border:0;font-weight:700}button.secondary{background:#1C222D}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.stat{background:#10141C;border:1px solid #27303d;border-radius:14px;padding:14px;text-align:center}.stat b{display:block;font-size:25px;margin-top:4px}
-.toolbar{display:grid;grid-template-columns:1fr 180px 150px;gap:10px}.device{padding:18px;border:1px solid #2c3542;border-radius:16px;margin-top:12px}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#27303d;font-size:12px}.subbox{padding:15px;border:1px solid #2c3542;border-radius:14px;margin-top:14px}.subbox h3{margin-bottom:5px}.notice{padding:11px;border-radius:10px;background:#10141C;color:#A7AFBF;font-size:13px;margin:10px 0}.section{margin-top:18px;padding-top:18px;border-top:1px solid #27303d}.secret{direction:ltr;text-align:left}
-@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.toolbar,.grid{grid-template-columns:1fr}.row{display:block}}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#080A0F;color:#fff;margin:0}.wrap{max-width:1100px;margin:24px auto;padding:16px}.card{background:#151A23;border:1px solid #27303d;border-radius:20px;padding:20px;margin-bottom:16px}h1,h2,h3{margin-top:0}.muted{color:#A7AFBF;font-size:13px}.error{color:#FF9B9B}.ok{color:#8DE0AA}input,select,button{width:100%;box-sizing:border-box;padding:12px;border-radius:11px;border:1px solid #34404f;background:#10141C;color:#fff;margin:5px 0}button{cursor:pointer;background:#315efb;border:0;font-weight:700}button.secondary{background:#1C222D}button.danger{background:#7d2632}button.success{background:#1f7a4d}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.stat{background:#10141C;border:1px solid #27303d;border-radius:14px;padding:14px;text-align:center}.stat b{display:block;font-size:25px;margin-top:4px}.toolbar{display:grid;grid-template-columns:1fr 180px 180px 130px;gap:10px}.device{padding:18px;border:1px solid #2c3542;border-radius:16px;margin-top:12px}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#27303d;font-size:12px}.subbox{padding:15px;border:1px solid #2c3542;border-radius:14px;margin-top:14px}.subbox h3{margin-bottom:5px}.section{margin-top:18px;padding-top:18px;border-top:1px solid #27303d}.secret{direction:ltr;text-align:left}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.pager{display:flex;gap:8px;align-items:center;margin-top:14px}.pager button{width:auto;min-width:110px}.pager span{flex:1;text-align:center;color:#A7AFBF}@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.toolbar,.grid,.actions{grid-template-columns:1fr}.row{display:block}}
 </style>
 </head>
-<body>
-<div class="wrap">
-<div class="card" id="login">
-<h1>Eagle X2 Control</h1><p class="muted">لوحة إدارة الأجهزة والتجارب والاشتراكات</p>
-<input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
-<input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
-<button id="loginBtn" type="button">تسجيل الدخول</button><div id="loginMsg" class="error"></div>
-</div>
-
-<div class="card" id="app" style="display:none">
-<div class="row"><div><h1>إدارة الأجهزة</h1><div id="who" class="muted"></div></div><button class="secondary" onclick="logout()">تسجيل الخروج</button></div>
-<div class="stats">
-<div class="stat"><span class="muted">إجمالي الأجهزة</span><b id="total">0</b></div>
-<div class="stat"><span class="muted">التجارب</span><b id="trials">0</b></div>
-<div class="stat"><span class="muted">النشطة</span><b id="active">0</b></div>
-<div class="stat"><span class="muted">المنتهية</span><b id="expired">0</b></div>
-<div class="stat"><span class="muted">الموقوفة</span><b id="suspended">0</b></div>
-</div>
-
-<div class="section">
-<h2>الأجهزة</h2>
-<div class="toolbar">
-<input id="q" placeholder="🔎 Device ID أو Username أو Host" autocomplete="off">
-<select id="filter" onchange="loadDevices(0)"><option value="all">كل الأجهزة</option><option value="trial">تجربة</option><option value="active">اشتراك نشط</option><option value="expired">منتهي</option><option value="suspended">موقوف</option></select>
-<button onclick="searchDevice()">بحث</button>
-</div>
-<div class="row" style="margin-top:8px"><div class="muted" id="listInfo"></div><button class="secondary" onclick="loadDevices(0)">تحديث</button></div>
-<div id="results"></div>
-</div>
-</div>
-</div>
-
+<body><div class="wrap">
+<div class="card" id="login"><h1>Eagle X2 Control</h1><p class="muted">لوحة إدارة الأجهزة والتجارب والاشتراكات</p><input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username"><input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password"><button id="loginBtn" type="button">تسجيل الدخول</button><div id="loginMsg" class="error"></div></div>
+<div class="card" id="app" style="display:none"><div class="row"><div><h1>إدارة الأجهزة</h1><div id="who" class="muted"></div></div><button class="secondary" onclick="logout()">تسجيل الخروج</button></div>
+<div class="stats"><div class="stat"><span class="muted">إجمالي الأجهزة</span><b id="total">0</b></div><div class="stat"><span class="muted">التجارب</span><b id="trials">0</b></div><div class="stat"><span class="muted">الاشتراكات النشطة</span><b id="active">0</b></div><div class="stat"><span class="muted">المنتهية</span><b id="expired">0</b></div><div class="stat"><span class="muted">الموقوفة</span><b id="suspended">0</b></div></div>
+<div class="section"><h2>الأجهزة</h2><div class="toolbar"><input id="q" placeholder="🔎 بحث عن جهاز أو Username أو Host" autocomplete="off"><select id="filter" onchange="loadDevices(0)"><option value="all">الكل</option><option value="trial">تجربة</option><option value="active">اشتراك نشط</option><option value="expired">منتهي</option><option value="suspended">موقوف</option></select><select id="sort" onchange="loadDevices(0)"><option value="last_seen">ترتيب: آخر اتصال</option><option value="created">ترتيب: الأحدث تسجيلًا</option><option value="expires">ترتيب: الأقرب انتهاءً</option></select><button onclick="searchDevice()">بحث</button></div><div class="row" style="margin-top:8px"><div class="muted" id="listInfo"></div><button class="secondary" onclick="loadAll()">تحديث</button></div><div id="results"></div><div class="pager"><button class="secondary" id="prevBtn" onclick="changePage(-1)">السابق</button><span id="pageInfo">الصفحة 1</span><button class="secondary" id="nextBtn" onclick="changePage(1)">التالي</button></div></div></div></div>
 <script>
-const URL='https://quaftlmuobshbnlhctmf.supabase.co';
-const KEY='sb_publishable_6mdnO-ezptIZzRKNfEbzaA_e9B-ulL5';
-const API=URL+'/functions/v1/admin-control';
-let session=null;
-const $=id=>document.getElementById(id);
-window.onerror=m=>$('loginMsg').textContent='خطأ في الصفحة: '+m;
-
-async function boot(){
- try{const raw=localStorage.getItem('aeriotv_admin_session');if(raw){session=JSON.parse(raw);if(session?.access_token){showApp();loadAll();return}}showLogin()}
- catch(e){localStorage.removeItem('aeriotv_admin_session');showLogin()}
-}
-function showLogin(){$('login').style.display='block';$('app').style.display='none'}
-function showApp(){$('login').style.display='none';$('app').style.display='block';$('who').textContent=(session?.user?.email||'')+' · تحديث تلقائي كل 30 ثانية';startAutoRefresh()}
-async function login(){
- $('loginMsg').textContent='جاري الاتصال بـ Supabase...';$('loginBtn').disabled=true;
- try{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)throw Error('أدخل البريد الإلكتروني وكلمة المرور.');
- const r=await fetch(URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({email,password})});
- const j=await r.json();if(!r.ok)throw Error(j.error_description||j.msg||j.message||'فشل تسجيل الدخول');if(!j.access_token)throw Error('لم يتم إنشاء جلسة تسجيل الدخول.');
- session={access_token:j.access_token,user:j.user||{email}};localStorage.setItem('aeriotv_admin_session',JSON.stringify(session));$('loginMsg').textContent='';showApp();loadAll()
- }catch(e){$('loginMsg').textContent=e.message||'فشل تسجيل الدخول'}finally{$('loginBtn').disabled=false}
-}
-function logout(){localStorage.removeItem('aeriotv_admin_session');session=null;showLogin()}
-async function call(body){
- if(!session?.access_token)throw Error('انتهت الجلسة');
- const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});
- const j=await r.json();if(!r.ok)throw Error(j.error||'حدث خطأ');return j
-}
-function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function toLocal(x){if(!x)return '';const d=new Date(x),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
-function statusLabel(d){if(d.status==='suspended')return 'موقوف';if(d.status==='expired'||(d.expires_at&&new Date(d.expires_at)<=new Date()))return 'منتهي';if(d.subscription_type==='trial')return 'تجربة';return 'نشط'}
-function renderDevice(d){
- const v=d.video_config||{},a=d.audio_config||{}, label=statusLabel(d);
- return '<div class="device">'+
- '<div><span class="badge">'+esc(label)+'</span> <b>'+esc(d.device_id||d.mac_address)+'</b></div>'+
- '<div class="muted" style="margin-top:6px">آخر اتصال: '+esc(toLocal(d.last_seen_at)||'لم يتصل بعد')+'</div>'+
- '<div class="grid" style="margin-top:10px">'+
- '<div>بداية التسجيل<br><b>'+esc(toLocal(d.first_registered_at)||'-')+'</b></div>'+
- '<div>بداية التجربة<br><b>'+esc(toLocal(d.trial_started_at)||'-')+'</b></div>'+
- '<div>انتهاء الاشتراك/التجربة<br><b>'+esc(toLocal(d.expires_at)||'-')+'</b></div>'+
- '<div>نوع الاشتراك<br><b>'+esc(d.subscription_type||'-')+'</b></div>'+
- '</div>'+
- '<div class="subbox"><h3>بيانات الفيديو — Xtream</h3>'+
- '<input id="vhost-'+d.id+'" placeholder="Host / Server URL" value="'+esc(v.server_url)+'">'+
- '<input id="vuser-'+d.id+'" placeholder="Username" value="'+esc(v.username)+'">'+
- '<input id="vpass-'+d.id+'" class="secret" type="password" placeholder="Password" value="'+esc(v.password)+'">'+
- '<button class="secondary" onclick="togglePassword(\'vpass-'+d.id+'\',this)">إظهار كلمة المرور</button>'+
- '</div>'+
- '<div class="grid">'+
- '<label>الحالة<select id="st-'+d.id+'"><option value="active" '+(d.status==='active'?'selected':'')+'>فعال</option><option value="suspended" '+(d.status==='suspended'?'selected':'')+'>موقوف</option><option value="expired" '+(d.status==='expired'?'selected':'')+'>منتهي</option></select></label>'+
- '<label>تاريخ الانتهاء<input id="ex-'+d.id+'" type="datetime-local" value="'+toLocal(d.expires_at)+'"></label>'+
- '</div>'+
- '<div class="subbox"><h3>الصوت — M3U <span class="muted">(اختياري)</span></h3><input id="am3u-'+d.id+'" placeholder="رابط M3U — اختياري" value="'+esc(a.m3u_url)+'"></div>'+
- '<button onclick="configureDevice(\''+d.id+'\')">حفظ وربط كاشتراك مدفوع</button>'+
- '</div>'
-}
+const URL='https://quaftlmuobshbnlhctmf.supabase.co',KEY='sb_publishable_6mdnO-ezptIZzRKNfEbzaA_e9B-ulL5',API=URL+'/functions/v1/admin-control';let session=null,currentPage=0,totalRows=0;const PAGE_SIZE=50,$=id=>document.getElementById(id);window.onerror=m=>$('loginMsg').textContent='خطأ في الصفحة: '+m;
+async function boot(){try{const raw=localStorage.getItem('aeriotv_admin_session');if(raw){session=JSON.parse(raw);if(session?.access_token){showApp();loadAll();return}}showLogin()}catch(e){localStorage.removeItem('aeriotv_admin_session');showLogin()}}
+function showLogin(){$('login').style.display='block';$('app').style.display='none'}function showApp(){$('login').style.display='none';$('app').style.display='block';$('who').textContent=(session?.user?.email||'')+' · تحديث تلقائي كل 30 ثانية';startAutoRefresh()}
+async function login(){$('loginMsg').textContent='جاري الاتصال بـ Supabase...';$('loginBtn').disabled=true;try{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)throw Error('أدخل البريد الإلكتروني وكلمة المرور.');const r=await fetch(URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({email,password})});const j=await r.json();if(!r.ok)throw Error(j.error_description||j.msg||j.message||'فشل تسجيل الدخول');session={access_token:j.access_token,user:j.user||{email}};localStorage.setItem('aeriotv_admin_session',JSON.stringify(session));$('loginMsg').textContent='';showApp();loadAll()}catch(e){$('loginMsg').textContent=e.message||'فشل تسجيل الدخول'}finally{$('loginBtn').disabled=false}}
+function logout(){stopAutoRefresh();localStorage.removeItem('aeriotv_admin_session');session=null;showLogin()}async function call(body){if(!session?.access_token)throw Error('انتهت الجلسة');const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(j.error||'حدث خطأ');return j}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}function toLocal(x){if(!x)return '';const d=new Date(x),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}function statusLabel(d){if(d.status==='suspended')return 'موقوف';if(d.status==='expired'||(d.expires_at&&new Date(d.expires_at)<=new Date()))return 'منتهي';if(d.subscription_type==='trial')return 'تجربة';return 'نشط'}
+function renderDevice(d){const v=d.video_config||{},a=d.audio_config||{},label=statusLabel(d);return '<div class="device"><div><span class="badge">'+esc(label)+'</span> <b>'+esc(d.device_id||d.mac_address)+'</b></div><div class="muted" style="margin-top:6px">آخر اتصال: '+esc(toLocal(d.last_seen_at)||'لم يتصل بعد')+'</div><div class="grid" style="margin-top:10px"><div>بدأت: <b>'+esc(toLocal(d.trial_started_at||d.first_registered_at)||'-')+'</b></div><div>تنتهي: <b>'+esc(toLocal(d.expires_at)||'-')+'</b></div><div>نوع الاشتراك: <b>'+esc(d.subscription_type||'-')+'</b></div><div>تاريخ التسجيل: <b>'+esc(toLocal(d.first_registered_at)||'-')+'</b></div></div><div class="subbox"><h3>بيانات الاشتراك — Xtream</h3><div>Host</div><input id="vhost-'+d.id+'" value="'+esc(v.server_url)+'"><div>Username</div><input id="vuser-'+d.id+'" value="'+esc(v.username)+'"><div>Password</div><input id="vpass-'+d.id+'" class="secret" type="password" value="'+esc(v.password)+'"><button class="secondary" onclick="togglePassword(\'vpass-'+d.id+'\',this)">إظهار كلمة المرور</button></div><div class="actions"><button class="success" onclick="activateDevice(\''+d.id+'\',12)">تفعيل سنة — 80 ريال</button><button class="success" onclick="activateDevice(\''+d.id+'\',6)">تفعيل 6 أشهر — 50 ريال</button><button class="danger" onclick="setStatus(\''+d.id+'\',\'suspended\')">توقيف الجهاز</button></div><div class="subbox"><h3>تعديل بيانات الاشتراك</h3><div class="grid"><label>الحالة<select id="st-'+d.id+'"><option value="active" '+(d.status==='active'?'selected':'')+'>فعال</option><option value="suspended" '+(d.status==='suspended'?'selected':'')+'>موقوف</option><option value="expired" '+(d.status==='expired'?'selected':'')+'>منتهي</option></select></label><label>تاريخ الانتهاء<input id="ex-'+d.id+'" type="datetime-local" value="'+toLocal(d.expires_at)+'"></label></div><button onclick="configureDevice(\''+d.id+'\')">حفظ بيانات الاشتراك</button></div><div class="subbox"><h3>الصوت — M3U <span class="muted">اختياري</span></h3><input id="am3u-'+d.id+'" placeholder="رابط M3U — اختياري" value="'+esc(a.m3u_url)+'"></div></div>'}
 function togglePassword(id,btn){const e=$(id);e.type=e.type==='password'?'text':'password';btn.textContent=e.type==='password'?'إظهار كلمة المرور':'إخفاء كلمة المرور'}
-async function loadStats(){
- const j=await call({action:'stats'});['total','trials','active','expired','suspended'].forEach(k=>$(k).textContent=j[k]??0)
-}
-async function loadDevices(page=0){
- $('results').innerHTML='<div class="muted">جاري تحميل الأجهزة...</div>';
- try{const j=await call({action:'list',filter:$('filter').value,page,limit:50});$('listInfo').textContent='عدد النتائج: '+j.total;
- $('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted" style="margin-top:14px">لا توجد أجهزة في هذا التصنيف.</div>';
- }catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
-}
-async function searchDevice(){
- const q=$('q').value.trim();if(!q){loadDevices(0);return}
- $('results').innerHTML='<div class="muted">جاري البحث...</div>';
- try{const j=await call({action:'search',query:q});$('listInfo').textContent='نتائج البحث: '+j.devices.length;
- $('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted">لم يتم العثور على جهاز.</div>'
- }catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
-}
-async function configureDevice(id){
- try{
-  const ex=$('ex-'+id).value;
-  const body={action:'configure_device',device_id:id,status:$('st-'+id).value,expires_at:ex?new Date(ex).toISOString():null,
-   video:{server_url:$('vhost-'+id).value.trim(),username:$('vuser-'+id).value.trim(),password:$('vpass-'+id).value},
-   audio:{m3u_url:$('am3u-'+id).value.trim()}};
-  const missing=[];if(!body.video.server_url)missing.push('Host');if(!body.video.username)missing.push('Username');if(!body.video.password)missing.push('Password');
-  if(missing.length)throw Error('أكمل: '+missing.join('، '));
-  await call(body);alert('تم حفظ الاشتراك وربطه بالجهاز.');await loadAll()
- }catch(e){alert(e.message)}
-}
-async function loadAll(){try{await Promise.all([loadStats(),loadDevices(0)])}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
-
-// Keep the dashboard current without requiring a manual refresh. The app-side
-// activation endpoint updates last_seen_at and trial-register attaches the
-// submitted Xtream credentials to the same device row.
-let refreshTimer=null;
-function startAutoRefresh(){
- if(refreshTimer)clearInterval(refreshTimer);
- refreshTimer=setInterval(()=>{if(session?.access_token)loadAll()},30000);
-}
-function stopAutoRefresh(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}}
-const originalLogout=logout;
-logout=()=>{stopAutoRefresh();originalLogout()};
-$('loginBtn').addEventListener('click',login);boot();
-</script>
-</body>
-</html>
+async function loadStats(){const j=await call({action:'stats'});['total','trials','active','expired','suspended'].forEach(k=>$(k).textContent=j[k]??0)}
+async function loadDevices(page=0){currentPage=Math.max(0,page);$('results').innerHTML='<div class="muted">جاري تحميل الأجهزة...</div>';try{const j=await call({action:'list',filter:$('filter').value,sort:$('sort').value,page:currentPage,limit:PAGE_SIZE});totalRows=j.total||0;$('listInfo').textContent='عدد النتائج: '+totalRows;$('pageInfo').textContent='الصفحة '+(currentPage+1)+' من '+Math.max(1,Math.ceil(totalRows/PAGE_SIZE));$('prevBtn').disabled=currentPage===0;$('nextBtn').disabled=(currentPage+1)*PAGE_SIZE>=totalRows;$('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted" style="margin-top:14px">لا توجد أجهزة في هذا التصنيف.</div>'}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
+function changePage(delta){loadDevices(currentPage+delta)}
+async function searchDevice(){const q=$('q').value.trim();if(!q){loadDevices(0);return}$('results').innerHTML='<div class="muted">جاري البحث...</div>';try{const j=await call({action:'search',query:q});totalRows=j.devices.length;$('listInfo').textContent='نتائج البحث: '+j.devices.length;$('pageInfo').textContent='نتائج البحث';$('prevBtn').disabled=true;$('nextBtn').disabled=true;$('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted">لم يتم العثور على جهاز.</div>'}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
+async function setStatus(id,status){try{await call({action:'update',id,status,subscription_type:status==='suspended'?'paid':'paid'});await loadAll()}catch(e){alert(e.message)}}
+async function activateDevice(id,months){if(!confirm('تفعيل الجهاز لمدة '+(months===12?'سنة':'6 أشهر')+'؟'))return;try{await call({action:'update',id,status:'active',subscription_type:'paid',expires_at:new Date(Date.now()+months*30*24*60*60*1000).toISOString()});await loadAll()}catch(e){alert(e.message)}}
+async function configureDevice(id){try{const ex=$('ex-'+id).value,body={action:'configure_device',device_id:id,status:$('st-'+id).value,expires_at:ex?new Date(ex).toISOString():null,video:{server_url:$('vhost-'+id).value.trim(),username:$('vuser-'+id).value.trim(),password:$('vpass-'+id).value},audio:{m3u_url:$('am3u-'+id).value.trim()}};const missing=[];if(!body.video.server_url)missing.push('Host');if(!body.video.username)missing.push('Username');if(!body.video.password)missing.push('Password');if(missing.length)throw Error('أكمل: '+missing.join('، '));await call(body);alert('تم حفظ بيانات الاشتراك.');await loadAll()}catch(e){alert(e.message)}}
+async function loadAll(){try{await Promise.all([loadStats(),loadDevices(0)])}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}let refreshTimer=null;function startAutoRefresh(){if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(session?.access_token)loadAll()},30000)}function stopAutoRefresh(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}}$('loginBtn').addEventListener('click',login);boot();
+</script></body></html>
