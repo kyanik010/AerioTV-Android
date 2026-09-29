@@ -25,23 +25,20 @@ async function loadStats(){const j=await call({action:'stats'});['total','trials
 async function loadDevices(page=0){currentPage=Math.max(0,page);$('results').innerHTML='<div class="muted">جاري تحميل الأجهزة...</div>';try{const j=await call({action:'list',filter:$('filter').value,sort:$('sort').value,page:currentPage,limit:PAGE_SIZE});totalRows=j.total||0;$('listInfo').textContent='عدد النتائج: '+totalRows;$('pageInfo').textContent='الصفحة '+(currentPage+1)+' من '+Math.max(1,Math.ceil(totalRows/PAGE_SIZE));$('prevBtn').disabled=currentPage===0;$('nextBtn').disabled=(currentPage+1)*PAGE_SIZE>=totalRows;$('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted" style="margin-top:14px">لا توجد أجهزة في هذا التصنيف.</div>'}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
 function changePage(delta){loadDevices(currentPage+delta)}
 async function searchDevice(){const q=$('q').value.trim();if(!q){loadDevices(0);return}$('results').innerHTML='<div class="muted">جاري البحث...</div>';try{const j=await call({action:'search',query:q});totalRows=j.devices.length;$('listInfo').textContent='نتائج البحث: '+j.devices.length;$('pageInfo').textContent='نتائج البحث';$('prevBtn').disabled=true;$('nextBtn').disabled=true;$('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted">لم يتم العثور على جهاز.</div>'}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
-async function setStatus(id,status){
+async function setStatus(id,status,videoProfileId,audioProfileId){
   try{
-    const card=document.querySelector('[id^="vhost-'+id+'"]');
-    const device=card?.closest('.device');
-    await call({action:'update',id,status,subscription_type:'paid'});
+    await call({action:'update',id,status,subscription_type:'paid',
+      video_profile_id:videoProfileId||null,audio_profile_id:audioProfileId||null});
     await loadAll()
   }catch(e){alert(e.message)}
 }
-async function activateDevice(id,months){
+async function activateDevice(id,months,videoProfileId,audioProfileId){
   if(!confirm('تفعيل الجهاز لمدة '+(months===12?'سنة':'6 أشهر')+'؟'))return;
   try{
     await call({
-      action:'update',
-      id,
-      status:'active',
-      subscription_type:'paid',
-      expires_at:new Date(Date.now()+months*30*24*60*60*1000).toISOString()
+      action:'update',id,status:'active',subscription_type:'paid',
+      expires_at:new Date(Date.now()+months*30*24*60*60*1000).toISOString(),
+      video_profile_id:videoProfileId||null,audio_profile_id:audioProfileId||null
     });
     await loadAll()
   }catch(e){alert(e.message)}
