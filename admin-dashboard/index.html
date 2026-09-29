@@ -25,8 +25,27 @@ async function loadStats(){const j=await call({action:'stats'});['total','trials
 async function loadDevices(page=0){currentPage=Math.max(0,page);$('results').innerHTML='<div class="muted">جاري تحميل الأجهزة...</div>';try{const j=await call({action:'list',filter:$('filter').value,sort:$('sort').value,page:currentPage,limit:PAGE_SIZE});totalRows=j.total||0;$('listInfo').textContent='عدد النتائج: '+totalRows;$('pageInfo').textContent='الصفحة '+(currentPage+1)+' من '+Math.max(1,Math.ceil(totalRows/PAGE_SIZE));$('prevBtn').disabled=currentPage===0;$('nextBtn').disabled=(currentPage+1)*PAGE_SIZE>=totalRows;$('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted" style="margin-top:14px">لا توجد أجهزة في هذا التصنيف.</div>'}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
 function changePage(delta){loadDevices(currentPage+delta)}
 async function searchDevice(){const q=$('q').value.trim();if(!q){loadDevices(0);return}$('results').innerHTML='<div class="muted">جاري البحث...</div>';try{const j=await call({action:'search',query:q});totalRows=j.devices.length;$('listInfo').textContent='نتائج البحث: '+j.devices.length;$('pageInfo').textContent='نتائج البحث';$('prevBtn').disabled=true;$('nextBtn').disabled=true;$('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted">لم يتم العثور على جهاز.</div>'}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
-async function setStatus(id,status){try{await call({action:'update',id,status,subscription_type:status==='suspended'?'paid':'paid'});await loadAll()}catch(e){alert(e.message)}}
-async function activateDevice(id,months){if(!confirm('تفعيل الجهاز لمدة '+(months===12?'سنة':'6 أشهر')+'؟'))return;try{await call({action:'update',id,status:'active',subscription_type:'paid',expires_at:new Date(Date.now()+months*30*24*60*60*1000).toISOString()});await loadAll()}catch(e){alert(e.message)}}
+async function setStatus(id,status){
+  try{
+    const card=document.querySelector('[id^="vhost-'+id+'"]');
+    const device=card?.closest('.device');
+    await call({action:'update',id,status,subscription_type:'paid'});
+    await loadAll()
+  }catch(e){alert(e.message)}
+}
+async function activateDevice(id,months){
+  if(!confirm('تفعيل الجهاز لمدة '+(months===12?'سنة':'6 أشهر')+'؟'))return;
+  try{
+    await call({
+      action:'update',
+      id,
+      status:'active',
+      subscription_type:'paid',
+      expires_at:new Date(Date.now()+months*30*24*60*60*1000).toISOString()
+    });
+    await loadAll()
+  }catch(e){alert(e.message)}
+}
 async function configureDevice(id){try{const ex=$('ex-'+id).value,body={action:'configure_device',device_id:id,status:$('st-'+id).value,expires_at:ex?new Date(ex).toISOString():null,video:{server_url:$('vhost-'+id).value.trim(),username:$('vuser-'+id).value.trim(),password:$('vpass-'+id).value},audio:{m3u_url:$('am3u-'+id).value.trim()}};const missing=[];if(!body.video.server_url)missing.push('Host');if(!body.video.username)missing.push('Username');if(!body.video.password)missing.push('Password');if(missing.length)throw Error('أكمل: '+missing.join('، '));await call(body);alert('تم حفظ بيانات الاشتراك.');await loadAll()}catch(e){alert(e.message)}}
 async function loadAll(){try{await Promise.all([loadStats(),loadDevices(0)])}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}let refreshTimer=null;function startAutoRefresh(){if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(session?.access_token)loadAll()},30000)}function stopAutoRefresh(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}}$('loginBtn').addEventListener('click',login);boot();
 </script></body></html>
