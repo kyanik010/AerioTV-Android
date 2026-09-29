@@ -11,7 +11,7 @@ body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#080A0
 <div class="card" id="login"><h1>Eagle X2 Control</h1><p class="muted">لوحة إدارة الأجهزة والتجارب والاشتراكات</p><input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="username"><input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password"><button id="loginBtn" type="button">تسجيل الدخول</button><div id="loginMsg" class="error"></div></div>
 <div class="card" id="app" style="display:none"><div class="row"><div><h1>إدارة الأجهزة</h1><div id="who" class="muted"></div></div><button class="secondary" onclick="logout()">تسجيل الخروج</button></div>
 <div class="stats"><div class="stat"><span class="muted">إجمالي الأجهزة</span><b id="total">0</b></div><div class="stat"><span class="muted">التجارب</span><b id="trials">0</b></div><div class="stat"><span class="muted">الاشتراكات النشطة</span><b id="active">0</b></div><div class="stat"><span class="muted">المنتهية</span><b id="expired">0</b></div><div class="stat"><span class="muted">الموقوفة</span><b id="suspended">0</b></div></div>
-<div class="section"><h2>الأجهزة</h2><div class="toolbar"><input id="q" placeholder="🔎 بحث عن جهاز أو Username أو Host" autocomplete="off"><select id="filter" onchange="loadDevices(0)"><option value="all">الكل</option><option value="trial">تجربة</option><option value="active">اشتراك نشط</option><option value="expired">منتهي</option><option value="suspended">موقوف</option></select><select id="sort" onchange="loadDevices(0)"><option value="last_seen">ترتيب: آخر اتصال</option><option value="created">ترتيب: الأحدث تسجيلًا</option><option value="expires">ترتيب: الأقرب انتهاءً</option></select><button onclick="searchDevice()">بحث</button></div><div class="row" style="margin-top:8px"><div class="muted" id="listInfo"></div><button class="secondary" onclick="loadAll()">تحديث</button></div><div id="results"></div><div class="pager"><button class="secondary" id="prevBtn" onclick="changePage(-1)">السابق</button><span id="pageInfo">الصفحة 1</span><button class="secondary" id="nextBtn" onclick="changePage(1)">التالي</button></div></div></div></div>
+<div class="section"><h2>الأجهزة</h2><div class="toolbar"><input id="q" placeholder="🔎 بحث عن جهاز أو Username أو Host" autocomplete="off"><select id="filter" onchange="loadDevices(0)"><option value="all">الكل</option><option value="trial">تجربة</option><option value="active">اشتراك نشط</option><option value="expired">منتهي</option><option value="suspended">موقوف</option></select><select id="sort" onchange="loadDevices(0)"><option value="last_seen">ترتيب: آخر اتصال</option><option value="created">ترتيب: الأحدث تسجيلًا</option><option value="expires">ترتيب: الأقرب انتهاءً</option></select><button onclick="searchDevice()">بحث</button></div><div class="row" style="margin-top:8px"><div class="muted" id="listInfo"></div><button class="secondary" onclick="loadAll()">تحديث</button><button class="danger" onclick="deleteAllDevices()">حذف جميع الأجهزة</button></div><div id="results"></div><div class="pager"><button class="secondary" id="prevBtn" onclick="changePage(-1)">السابق</button><span id="pageInfo">الصفحة 1</span><button class="secondary" id="nextBtn" onclick="changePage(1)">التالي</button></div></div></div></div>
 <script>
 const URL='https://quaftlmuobshbnlhctmf.supabase.co',KEY='sb_publishable_6mdnO-ezptIZzRKNfEbzaA_e9B-ulL5',API=URL+'/functions/v1/admin-control';let session=null,currentPage=0,totalRows=0;const PAGE_SIZE=50,$=id=>document.getElementById(id);window.onerror=m=>$('loginMsg').textContent='خطأ في الصفحة: '+m;
 async function boot(){try{const raw=localStorage.getItem('aeriotv_admin_session');if(raw){session=JSON.parse(raw);if(session && session.access_token){showApp();loadAll();return}}showLogin()}catch(e){localStorage.removeItem('aeriotv_admin_session');showLogin()}}
@@ -41,7 +41,7 @@ function renderDevice(d){
       <div class="actions">
         <button class="success" onclick="activateDevice('${d.id}',12,'${esc(d.video_profile_id||'')}','${esc(d.audio_profile_id||'')}')">تفعيل سنة — 80 ريال</button>
         <button class="success" onclick="activateDevice('${d.id}',6,'${esc(d.video_profile_id||'')}','${esc(d.audio_profile_id||'')}')">تفعيل 6 أشهر — 50 ريال</button>
-        <button class="danger" onclick="setStatus('${d.id}','suspended','${esc(d.video_profile_id||'')}','${esc(d.audio_profile_id||'')}')">توقيف الجهاز</button>
+        <button class="danger" onclick="setStatus('${d.id}','suspended','${esc(d.video_profile_id||'')}','${esc(d.audio_profile_id||'')}')">توقيف الجهاز</button><button class="danger" onclick="deleteDevice('${d.id}','${esc(d.device_id||d.mac_address||'الجهاز')}')">حذف نهائي</button>
       </div>
       <div class="subbox">
         <h3>تعديل بيانات الاشتراك</h3>
@@ -62,6 +62,24 @@ function renderDevice(d){
     </div>`;
 }
 function togglePassword(id,btn){const e=$(id);e.type=e.type==='password'?'text':'password';btn.textContent=e.type==='password'?'إظهار كلمة المرور':'إخفاء كلمة المرور'}
+async function rpc(name,args={}){
+  if(!session?.access_token)throw Error('انتهت الجلسة');
+  const r=await fetch(URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify(args)});
+  const text=await r.text();let j={};try{j=JSON.parse(text)}catch(e){}
+  if(!r.ok)throw Error(j.message||j.error||'فشل تنفيذ العملية');
+  return j;
+}
+async function deleteDevice(id,label){
+  if(!confirm('تحذير: سيتم حذف الجهاز '+label+' نهائيًا من قاعدة البيانات. لا يمكن التراجع عن هذا الإجراء.\n\nهل تريد المتابعة؟'))return;
+  try{const j=await rpc('admin_delete_device',{p_device_id:id});if(!j?.ok)throw Error(j?.error||'فشل حذف الجهاز');await loadAll()}catch(e){alert(e.message)}
+}
+async function deleteAllDevices(){
+  const count=$('total').textContent||'0';
+  if(count==='0'){alert('لا توجد أجهزة لحذفها.');return}
+  if(!confirm('تحذير شديد: سيتم حذف جميع الأجهزة ('+count+') نهائيًا، مع تنظيف بيانات الاشتراكات المرتبطة بها. لا يمكن التراجع.\n\nهل تريد المتابعة؟'))return;
+  if(prompt('للتأكيد اكتب: حذف الكل')!=='حذف الكل')return;
+  try{const j=await rpc('admin_delete_all_devices',{});if(!j?.ok)throw Error(j?.error||'فشل حذف جميع الأجهزة');alert('تم حذف '+(j.deleted??count)+' جهاز نهائيًا.');await loadAll()}catch(e){alert(e.message)}
+}
 async function loadStats(){const j=await call({action:'stats'});['total','trials','active','expired','suspended'].forEach(k=>$(k).textContent=j[k]??0)}
 async function loadDevices(page=0){currentPage=Math.max(0,page);$('results').innerHTML='<div class="muted">جاري تحميل الأجهزة...</div>';try{const j=await call({action:'list',filter:$('filter').value,sort:$('sort').value,page:currentPage,limit:PAGE_SIZE});totalRows=j.total||0;$('listInfo').textContent='عدد النتائج: '+totalRows;$('pageInfo').textContent='الصفحة '+(currentPage+1)+' من '+Math.max(1,Math.ceil(totalRows/PAGE_SIZE));$('prevBtn').disabled=currentPage===0;$('nextBtn').disabled=(currentPage+1)*PAGE_SIZE>=totalRows;$('results').innerHTML=j.devices.length?j.devices.map(renderDevice).join(''):'<div class="muted" style="margin-top:14px">لا توجد أجهزة في هذا التصنيف.</div>'}catch(e){$('results').innerHTML='<div class="error">'+esc(e.message)+'</div>'}}
 function changePage(delta){loadDevices(currentPage+delta)}
