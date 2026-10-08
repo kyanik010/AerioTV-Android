@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aeriotv.android.core.pip.findActivity
+import com.aeriotv.android.feature.activation.ActivationRefreshBus
 import com.aeriotv.android.core.sync.DriveSyncManager
 import com.aeriotv.android.core.sync.SyncCategory
 import com.aeriotv.android.core.sync.SyncConfig
@@ -328,6 +329,16 @@ fun SyncSettingsScreen(
                         // blank install overwrote a good Drive backup, the user
                         // wants every manual sync to state its direction. The
                         // periodic background worker still does push-then-pull.
+                        SettingsActionRow(
+                            label = "مزامنة الاشتراك",
+                            subtitle = "تحديث Host والقنوات ومصدر الصوت من لوحة التحكم",
+                            leadingIcon = Icons.Filled.CloudDownload,
+                            running = false,
+                            onClick = {
+                                ActivationRefreshBus.request()
+                                Toast.makeText(context, "تم طلب مزامنة الاشتراك.", Toast.LENGTH_SHORT).show()
+                            },
+                        )
                         SettingsActionRow(
                             label = "Push Config to Drive",
                             subtitle = "Overwrite the Drive backup with this device's setup",
