@@ -1,7 +1,6 @@
 package com.aeriotv.android.feature.activation
 
 import android.content.Context
-import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -71,7 +70,6 @@ fun ActivationGate(
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("eagle_x_subscription", Context.MODE_PRIVATE) }
-    val deviceId = remember { readActivationId(context) }
     var username by remember { mutableStateOf(prefs.getString("username", "").orEmpty()) }
     var password by remember { mutableStateOf(prefs.getString("password", "").orEmpty()) }
     var state by remember { mutableStateOf(if (username.isBlank() || password.isBlank()) ActivationState.LOGIN else ActivationState.CHECKING) }
@@ -85,7 +83,7 @@ fun ActivationGate(
         }
         state = ActivationState.CHECKING
         errorText = null
-        val result = withContext(Dispatchers.IO) { runCatching { requestActivation(username.trim(), password, deviceId) } }
+        val result = withContext(Dispatchers.IO) { runCatching { requestActivation(username.trim(), password) } }
         result.onSuccess { response ->
             if (!response.activated) {
                 state = when (response.status) {
@@ -140,15 +138,6 @@ fun ActivationGate(
                 }
             }
 
-            val audioUrl = config.audio?.m3uUrl
-            if (!audioUrl.isNullOrBlank()) {
-                val audioResult = withContext(Dispatchers.IO) { audioSourceManager.loadPlaylistIfChanged(audioUrl) }
-                if (audioResult.isFailure) {
-                    state = ActivationState.ERROR
-                    errorText = "تعذر تحميل خدمة الصوت"
-                    return@onSuccess
-                }
-            }
             state = ActivationState.ACTIVE
         }.onFailure {
             state = ActivationState.ERROR
@@ -284,7 +273,7 @@ private fun ActivationScreen(
     }
 }
 
-private fun requestActivation(username: String, password: String, deviceId: String): ActivationResponse {
+private fun requestActivation(username: String, password: String): ActivationResponse {
     val connection = (URL(BuildConfig.DEVICE_ACTIVATION_URL).openConnection() as HttpURLConnection).apply {
         requestMethod = "POST"
         connectTimeout = 10_000
@@ -295,7 +284,7 @@ private fun requestActivation(username: String, password: String, deviceId: Stri
     }
     try {
         connection.outputStream.use {
-            it.write(JSONObject().put("username", username).put("password", password).put("device_id", deviceId).toString().toByteArray(Charsets.UTF_8))
+            it.write(JSONObject().put("username", username).put("password", password).toString().toByteArray(Charsets.UTF_8))
         }
         val stream = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
         val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
@@ -308,15 +297,7 @@ private fun requestActivation(username: String, password: String, deviceId: Stri
                 val video = config.optJSONObject("video")?.let {
                     ManagedVideoConfig(it.optString("server_url"), it.optString("username"), it.optString("password"))
                 }
-                val audio = config.optJSONObject("audio")?.let {
-                    ManagedAudioConfig(
-                        m3uUrl = it.optString("m3u_url").takeIf(String::isNotBlank),
-                        serverUrl = it.optString("server_url").takeIf(String::isNotBlank),
-                        username = it.optString("username").takeIf(String::isNotBlank),
-                        password = it.optString("password").takeIf(String::isNotBlank),
-                    )
-                }
-                ManagedActivationConfig(config.optString("expires_at").takeIf(String::isNotBlank), video, audio)
+                ManagedActivationConfig(config.optString("expires_at").takeIf(String::isNotBlank), video, null)
             },
         )
     } finally {
@@ -324,6 +305,3 @@ private fun requestActivation(username: String, password: String, deviceId: Stri
     }
 }
 
-private fun readActivationId(context: Context): String =
-    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)?.takeIf { it.isNotBlank() }?.uppercase()
-        ?: "EV-" + java.util.UUID.randomUUID().toString().replace("-", "").take(18).uppercase()
