@@ -276,8 +276,8 @@ private fun ActivationScreen(
 private fun requestActivation(username: String, password: String): ActivationResponse {
     val connection = (URL(BuildConfig.DEVICE_ACTIVATION_URL).openConnection() as HttpURLConnection).apply {
         requestMethod = "POST"
-        connectTimeout = 10_000
-        readTimeout = 10_000
+        connectTimeout = 15_000
+        readTimeout = 120_000
         doOutput = true
         setRequestProperty("Content-Type", "application/json")
         setRequestProperty("Accept", "application/json")
