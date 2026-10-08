@@ -1,5 +1,6 @@
 package com.aeriotv.android.feature.activation
 
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,4 +38,11 @@ class ActivationConfigStore @Inject constructor() {
     fun clear() {
         _config.value = null
     }
+}
+
+
+object ActivationRefreshBus {
+    private val _events = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val events = _events
+    fun request() { _events.tryEmit(Unit) }
 }
