@@ -78,7 +78,7 @@ fun ActivationGate(
     var errorText by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    suspend fun check() {
+    suspend fun check(forceRefresh: Boolean = false) {
         if (username.isBlank() || password.isBlank()) {
             state = ActivationState.LOGIN
             return
@@ -115,6 +115,7 @@ fun ActivationGate(
             val current = playlistRepository.activePlaylist()
             val currentMatches = current != null &&
                 current.sourceType == SourceType.XtreamCodes.name &&
+                !forceRefresh &&
                 current.urlString.trimEnd('/') == video.serverUrl.trimEnd('/') &&
                 current.username.orEmpty() == video.username &&
                 current.password.orEmpty() == video.password
@@ -161,7 +162,7 @@ fun ActivationGate(
 
     LaunchedEffect(Unit) {
         ActivationRefreshBus.events.collectLatest {
-            if (username.isNotBlank() && password.isNotBlank()) check()
+            if (username.isNotBlank() && password.isNotBlank()) check(forceRefresh = true)
         }
     }
 
@@ -183,7 +184,7 @@ fun ActivationGate(
                 state = ActivationState.LOGIN
             } else scope.launch { check() }
         },
-        onRetry = { scope.launch { check() } },
+        onRetry = { scope.launch { check(forceRefresh = true) } },
         onChangeCredentials = {
             prefs.edit().clear().apply()
             username = ""
