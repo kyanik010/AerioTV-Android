@@ -42,7 +42,7 @@ async function loadDevices(){
     +'<div><div class="meta-label">الحالة</div><span class="pill '+statusClass+'">'+esc(statusLabel)+'</span></div>'
     +'<div class="last-seen"><div class="meta-label">آخر اتصال</div><div class="meta-value">'+fmt(d.last_seen_at)+'</div></div>'
     +'<div><div class="meta-label">تاريخ الانتهاء</div><div class="meta-value">'+fmt(d.expires_at)+'</div></div>'
-    +'<div class="device-actions"><button class="secondary" onclick="toggleDeviceDetails(\\''+id+'\\')">التفاصيل والتعديل</button></div></div>'
+    +'<div class="device-actions"><button class="secondary" onclick="toggleDeviceDetails(&quot;'+id+'&quot;)">التفاصيل والتعديل</button></div></div>'
     +'<details class="device-form" id="details-'+id+'"><summary>بيانات الجهاز والاشتراك</summary>'
     +'<div class="row"><select id="status-'+id+'"><option value="pending" '+(d.status==='pending'?'selected':'')+'>بانتظار التفعيل</option><option value="active" '+(d.status==='active'?'selected':'')+'>نشط</option><option value="suspended" '+(d.status==='suspended'?'selected':'')+'>موقوف</option><option value="revoked" '+(d.status==='revoked'?'selected':'')+'>ملغي نهائيًا</option><option value="expired" '+(d.status==='expired'?'selected':'')+'>منتهي</option></select>'
     +'<input id="expiry-'+id+'" type="datetime-local" value="'+(d.expires_at?new Date(new Date(d.expires_at).getTime()-new Date(d.expires_at).getTimezoneOffset()*60000).toISOString().slice(0,16):'')+'" aria-label="تاريخ الانتهاء"></div>'
@@ -51,7 +51,7 @@ async function loadDevices(){
     +'<div class="row"><input id="username-'+id+'" value="'+esc(source.username||'')+'" placeholder="Username"><input id="password-'+id+'" type="text" value="'+esc(source.password_secret||'')+'" placeholder="Password"></div>'
     +'<input id="m3u-'+id+'" value="'+esc(source.m3u_url_secret||'')+'" placeholder="M3U URL (يُستخدم عند اختيار M3U)">'
     +'<textarea id="notes-'+id+'" placeholder="ملاحظات">'+esc(d.notes||'')+'</textarea>'
-    +'<div class="row"><button onclick="saveDevice(\\''+id+'\\')">حفظ التغييرات</button><button class="danger" onclick="deleteRecord(\\'devices\\',\\''+id+'\\')">حذف الجهاز</button></div>'
+    +'<div class="row"><button onclick="saveDevice(&quot;'+id+'&quot;)">حفظ التغييرات</button><button class="danger" onclick="deleteRecord(&quot;devices&quot;,&quot;'+id+'&quot;)">حذف الجهاز</button></div>'
     +'<div class="record-id">معرّف السجل: '+id+'</div></details></article>';
   }).join('')+'</div>':'<div class="empty"><div class="empty-icon">▦</div><div>لا توجد أجهزة مطابقة للبحث</div></div>';
  }catch(e){box.innerHTML='<p class="err">'+esc(e.message)+'</p>'}
